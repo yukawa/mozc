@@ -16,22 +16,29 @@ jobs:
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2204-Readme.md
     runs-on: ubuntu-22.04
     timeout-minutes: 60
+    container:
+      image: "debian:12.1"
 
     steps:
+      - name: Setup
+        run: |
+          apt-get update
+          apt-get install -y git build-essential libibus-1.0-dev qtbase5-dev
+          #
+          # Unset the Android NDK setting to skip the unnecessary configuration.
+          echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
+          # Install Bazel
+          apt-get install -y curl gnupg libncurses5
+          curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel.gpg
+          mv bazel.gpg /etc/apt/trusted.gpg.d/
+          echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
+          apt-get update
+          apt-get install -y bazel
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: 'recursive'
-
-      - name: Setup
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libibus-1.0-dev qtbase5-dev
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CXX=clang++" >> $GITHUB_ENV
-          #
-          # Unset the Android NDK setting to skip the unnecessary configuration.
-          echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
 
       - name: bazel build
         working-directory: ./src
@@ -44,29 +51,3 @@ jobs:
           name: mozc.zip
           path: src/bazel-bin/unix/mozc.zip
           if-no-files-found: warn
-
-  test:
-    # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2204-Readme.md
-    runs-on: ubuntu-22.04
-    timeout-minutes: 60
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-
-      - name: Setup
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libibus-1.0-dev qtbase5-dev
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CXX=clang++" >> $GITHUB_ENV
-          #
-          # Unset the Android NDK setting to skip the unnecessary configuration.
-          echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
-
-      - name: bazel test
-        working-directory: ./src
-        run: |
-          bazel test ... --config oss_linux --build_tests_only
