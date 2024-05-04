@@ -31,7 +31,7 @@
 
 // TODO(b/180075250): Temporarily removed while supporting Lexan.
 #if defined(_WIN32) && defined(GOOGLE_JAPANESE_INPUT_BUILD) && \
-    !defined(__clang__)
+    !defined(MOZC_BUILD) && !defined(__clang__)
 
 #include <shellapi.h>  // for CommandLineToArgvW
 #include <windows.h>
