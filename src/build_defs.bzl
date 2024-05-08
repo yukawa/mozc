@@ -63,7 +63,7 @@ def mozc_cc_library(deps = [], copts = [], visibility = None, **kwargs):
     """
     native.cc_library(
         deps = deps + ["//:macro"],
-        copts = copts + ["-funsigned-char"],
+        copts = copts,
         visibility = _update_visibility(visibility),
         **kwargs
     )
@@ -79,7 +79,7 @@ def mozc_cc_binary(deps = [], copts = [], **kwargs):
     """
     native.cc_binary(
         deps = deps + ["//:macro"],
-        copts = copts + ["-funsigned-char"],
+        copts = copts,
         **kwargs
     )
 
@@ -102,7 +102,7 @@ def mozc_cc_test(name, tags = [], deps = [], copts = [], **kwargs):
         name = name,
         tags = tags,
         deps = deps + ["//:macro"],
-        copts = copts + ["-funsigned-char"],
+        copts = copts,
         **kwargs
     )
 
