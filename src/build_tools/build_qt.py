@@ -455,6 +455,12 @@ def build_on_mac(args: argparse.Namespace) -> None:
   if ninja_dir:
     env['PATH'] = str(ninja_dir) + os.pathsep + env['PATH']
 
+  ninja = str(shutil.which('ninja', path=env['PATH']))
+  if not ninja or not pathlib.Path(ninja).exists():
+    raise FileNotFoundError('build_qt.py requires ninja command. '
+      'Have it in PATH or specify its dir with --ninja_dir.')
+  print('ninja=' + ninja)
+
   configure_cmds = ['./configure'] + make_configure_options(args)
   cmake = str(shutil.which('cmake', path=env['PATH']))
   build_cmds = [cmake, '--build', '.', '--parallel']
