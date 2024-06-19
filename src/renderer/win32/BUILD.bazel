@@ -56,6 +56,7 @@ mozc_cc_binary(
         "//base/win32:winmain",
         "//renderer:init_mozc_renderer",
     ],
+    visibility = ["//win32/installer:__subpackages__"],
 )
 
 lexan.resource_files(

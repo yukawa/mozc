@@ -68,6 +68,9 @@ mozc_cc_binary(
         "//win32/cache_service:cache_service_manager",
         "@com_google_absl//absl/strings",
     ],
+    visibility = [
+        "//win32/installer:__subpackages__"
+    ],
 )
 
 lexan.resource_files(

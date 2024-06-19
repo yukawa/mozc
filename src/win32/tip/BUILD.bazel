@@ -66,6 +66,9 @@ mozc_cc_binary(
         "//win32/base:tsf_profile",
         "@com_google_absl//absl/base",
     ],
+    visibility = [
+        "//win32/installer:__subpackages__"
+    ],
 )
 
 lexan.resource_files(

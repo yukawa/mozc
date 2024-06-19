@@ -27,65 +27,41 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Win32 broker
-
 load(
     "//:build_defs.bzl",
-    "MOZC_TAGS",
-    "mozc_cc_binary",
-    "mozc_cc_library",
+    "mozc_select",
 )
-load("//bazel:stubs.bzl", "lexan")
-
-package(
-    default_visibility = ["//visibility:private"],
+load(
+    "//:config.bzl",
+    "BRANDING",
 )
 
-mozc_cc_binary(
-    name = "mozc_broker_main",
-    srcs = ["mozc_broker_main.cc"],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
-    deps = [
-        ":prelauncher",
-        "//base:crash_report_handler",
-        "//base:init_mozc",
-        "//base:system_util",
-        "//base/win32:winmain",
-        "//config:stats_config_util",
-        "@com_google_absl//absl/flags:flag",
-    ],
-    visibility = [
-        "//win32/installer:__subpackages__"
-    ],
-)
+package(default_visibility = ["//:__subpackages__"])
 
-lexan.resource_files(
-    name = "mozc_broker_resource",
-    manifests = [
-        "mozc_broker.exe.manifest",
+filegroup(
+    name = "core_dynamic_crt_artifacts",
+    srcs = [
+        "//gui/tool:mozc_tool",
+        "//renderer/win32:win32_renderer_main",
+        "//server:mozc_server",
+        "//win32/broker:mozc_broker_main",
+        "//win32/cache_service:mozc_cache_service",
     ],
-    rc_files = [
-        "mozc_broker.rc",
-    ],
-    resources = [
-        "mozc_broker_resource.h",
-    ],
-    tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
 )
 
-mozc_cc_library(
-    name = "prelauncher",
-    srcs = ["prelauncher.cc"],
-    hdrs = ["prelauncher.h"],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
-    deps = [
-        "//base:run_level",
-        "//base:system_util",
-        "//client",
-        "//client:client_interface",
-        "//renderer:renderer_client",
+filegroup(
+    name = "custom_action_artifacts",
+    srcs = [
+        "//win32/custom_action:custom_action",
     ],
+    target_compatible_with = ["@platforms//os:windows"],
+)
+
+filegroup(
+    name = "tip_dll_artifacts",
+    srcs = [
+        "//win32/tip:mozc_tip",
+    ],
+    target_compatible_with = ["@platforms//os:windows"],
 )
