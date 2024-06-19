@@ -36,6 +36,11 @@ package(
 
 cc_library(
     name = "qt_win",
+    srcs = [
+        "lib/Qt6Core.lib",
+        "lib/Qt6Gui.lib",
+        "lib/Qt6Widgets.lib",
+    ],
     hdrs = glob([
         "include"
     ]),
@@ -44,23 +49,6 @@ cc_library(
         "include/QtCore",
         "include/QtGui",
         "include/QtWidgets",
-    ],
-#    linkopts = select({
-#        "//tools/compilation_mode:dbg": [
-#            "Qt6Cored.lib",
-#            "Qt6Guid.lib",
-#            "Qt6Widgetsd.lib",
-#        ],
-#        "//conditions:default": [
-#            "Qt6Core.lib",
-#            "Qt6Gui.lib",
-#            "Qt6Widgets.lib",
-#        ],
-#    }),
-    linkopts = [
-        "Qt6Core.lib",
-        "Qt6Gui.lib",
-        "Qt6Widgets.lib",
     ],
 )
 
@@ -77,7 +65,7 @@ def _qt_win_repository_impl(repo_ctx):
         repo_ctx.file("BUILD.bazel", "")
         return
 
-    qt_path = repo_ctx.path("C:/Users/micro/source/repos/mozc/src/third_party/qt")
+    qt_path = repo_ctx.path("C:\Users\micro\source\repos\mozc\src\third_party\qt")
     repo_ctx.symlink(qt_path.get_child("bin"), "bin")
     repo_ctx.symlink(qt_path.get_child("include"), "include")
     repo_ctx.symlink(qt_path.get_child("lib"), "lib")

@@ -169,6 +169,7 @@ mozc_cc_library(
     deps = [
         ":input_dll",
         ":tsf_profile",
+        ":msctf_dll",
         "//base/win32:wide_char",
         "@com_google_absl//absl/log",
         "@com_microsoft_wil//:wil",
@@ -388,17 +389,12 @@ mozc_cc_test(
     ],
 )
 
-lexan.cc_windows_dll(
+mozc_cc_win32_library(
     name = "msctf_dll",
     srcs = [
         "msctf_dll.cc",
     ],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
     win_def_file = "msctf_dll.def",
-    deps = [
-        "@com_google_absl//absl/log:check",
-    ],
 )
 
 mozc_cc_test(
