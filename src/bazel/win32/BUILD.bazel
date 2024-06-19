@@ -53,6 +53,15 @@ bzl_library(
     deps = ["//:build_defs_bzl"],
 )
 
+bzl_library(
+    name = "mozc_cc_win32_library",
+    srcs = ["mozc_cc_win32_library.bzl"],
+    test_size = "small",
+    visibility = ["//visibility:private"],
+    deps = ["//:build_defs_bzl"],
+)
+
+
 mozc_win32_lib(
     name = "aux_ulib",
 )

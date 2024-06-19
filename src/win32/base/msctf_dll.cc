@@ -32,29 +32,21 @@
 
 #include <windows.h>
 
-#include "absl/log/check.h"
-
 class ITfCategoryMgr;
 class ITfLangBarItemMgr;
 class ITfInputProcessorProfiles;
 
 extern "C" UINT WINAPI
 TF_CreateCategoryMgr(__out ITfCategoryMgr **profile_mgr) {
-  CHECK(false) << "This is a stub function to create an import library. "
-               << "Shouldn't be called from anywhere.";
   return 0;
 }
 
 extern "C" UINT WINAPI
 TF_CreateInputProcessorProfiles(__out ITfInputProcessorProfiles **pplbim) {
-  CHECK(false) << "This is a stub function to create an import library. "
-               << "Shouldn't be called from anywhere.";
   return 0;
 }
 
 extern "C" UINT WINAPI
 TF_CreateLangBarItemMgr(__out ITfLangBarItemMgr **pplbim) {
-  CHECK(false) << "This is a stub function to create an import library. "
-               << "Shouldn't be called from anywhere.";
   return 0;
 }

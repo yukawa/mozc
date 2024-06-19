@@ -41,6 +41,10 @@ load(
     "//bazel/win32:build_defs.bzl",
     "features_gdi",
 )
+load(
+    "//bazel/win32:mozc_cc_win32_library.bzl",
+    "mozc_cc_win32_library",
+)
 
 package(
     default_visibility = ["//win32:__subpackages__"],
@@ -366,30 +370,11 @@ mozc_cc_test(
     ],
 )
 
-mozc_cc_library(
+mozc_cc_win32_library(
     name = "input_dll",
-    srcs = [
-        "input_dll.cc",
-    ],
-    includes = [
-        "input_dll.h",
-    ],
-    deps = [
-        "@com_google_absl//absl/log:check",
-    ],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
+    srcs = ["input_dll.cc"],
+    hdrs = ["input_dll.h"],
     win_def_file = "input_dll.def",
-    linkstatic = False,
-)
-
-cc_shared_library(
-    name = "input_dll_dll",
-    deps = [
-        "input_dll",
-    ],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
 )
 
 mozc_cc_test(
