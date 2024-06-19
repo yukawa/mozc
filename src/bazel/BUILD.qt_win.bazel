@@ -1,0 +1,27 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "qt_win",
+    srcs = [
+        "lib/Qt6Core.lib",
+        "lib/Qt6Gui.lib",
+        "lib/Qt6Widgets.lib",
+    ],
+    hdrs = glob([
+        "include"
+    ]),
+    includes = [
+        "include",
+        "include/QtCore",
+        "include/QtGui",
+        "include/QtWidgets",
+    ],
+)
+
+exports_files([
+    "bin/moc.exe",
+    "bin/uic.exe",
+    "bin/rcc.exe",
+])

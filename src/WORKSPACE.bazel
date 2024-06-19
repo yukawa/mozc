@@ -190,9 +190,10 @@ qt_mac_repository(
 )
 
 # Qt for Windows
-load("@//bazel:qt_win_repository.bzl", "qt_win_repository")
-qt_win_repository(
-  name = "qt_win",
+new_local_repository(
+    name = "qt_win",
+    build_file = "@//bazel:BUILD.qt_win.bazel",
+    path = "third_party/qt",
 )
 
 
