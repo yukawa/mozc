@@ -32,6 +32,7 @@
 load(
     "//:build_defs.bzl",
     "MOZC_TAGS",
+    "mozc_cc_binary",
     "mozc_cc_library",
     "mozc_cc_test",
 )
@@ -167,6 +168,9 @@ mozc_cc_library(
         "//base/win32:wide_char",
         "@com_google_absl//absl/log",
         "@com_microsoft_wil//:wil",
+    ],
+    visibility = [
+        "//gui:__subpackages__"
     ],
 )
 
@@ -362,20 +366,30 @@ mozc_cc_test(
     ],
 )
 
-lexan.cc_windows_dll(
+mozc_cc_library(
     name = "input_dll",
     srcs = [
         "input_dll.cc",
     ],
-    hdrs = [
+    includes = [
         "input_dll.h",
+    ],
+    deps = [
+        "@com_google_absl//absl/log:check",
     ],
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     win_def_file = "input_dll.def",
+    linkstatic = False,
+)
+
+cc_shared_library(
+    name = "input_dll_dll",
     deps = [
-        "@com_google_absl//absl/log:check",
+        "input_dll",
     ],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
 )
 
 mozc_cc_test(

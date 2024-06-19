@@ -189,6 +189,12 @@ qt_mac_repository(
   default_path = MACOS_QT_PATH,  # can be replaced with MOZC_QT_PATH envvar.
 )
 
+# Qt for Windows
+load("@//bazel:qt_win_repository.bzl", "qt_win_repository")
+qt_win_repository(
+  name = "qt_win",
+)
+
 
 # Google Toolbox for Mac
 # https://github.com/google/google-toolbox-for-mac
