@@ -55,6 +55,54 @@ config_setting(
     visibility = ["//visibility:private"],
 )
 
+config_setting(
+    name = "compiler_clang_cl",
+    flag_values = {
+        "@bazel_tools//tools/cpp:compiler": "clang-cl",
+    },
+    visibility = ["//:__subpackages__"],
+)
+
+config_setting(
+    name = "compiler_msvc_cl",
+    flag_values = {
+        "@bazel_tools//tools/cpp:compiler": "msvc-cl",
+    },
+    visibility = ["//:__subpackages__"],
+)
+
+config_setting(
+    name = "compiler_clang",
+    flag_values = {
+        "@bazel_tools//tools/cpp:compiler": "clang",
+    },
+    visibility = ["//:__subpackages__"],
+)
+
+config_setting(
+    name = "compiler_gcc",
+    flag_values = {
+        "@bazel_tools//tools/cpp:compiler": "gcc",
+    },
+    visibility = ["//:__subpackages__"],
+)
+
+selects.config_setting_group(
+    name = "compiler_msvc_like",
+    match_any = [
+        ":compiler_clang_cl",
+        ":compiler_msvc_cl",
+    ],
+)
+
+selects.config_setting_group(
+    name = "compiler_gcc_like",
+    match_any = [
+        ":compiler_clang",
+        ":compiler_gcc",
+    ],
+)
+
 # Special target so as to define special macros for each platforms.
 # Don't depend on this directly. Use mozc_cc_(library|binary|test) rule instead.
 cc_library(
@@ -89,6 +137,21 @@ cc_library(
         ],
         windows = [
             "GOOGLE_JAPANESE_INPUT_BUILD",
+            "WINVER=0x0A00",
+            "_WIN32_WINNT=0x0A00",
+            "_ATL_ALL_WARNINGS",
+            "_ATL_ALLOW_CHAR_UNSIGNED",
+            "_ATL_CSTRING_EXPLICIT_CONSTRUCTORS",
+            "_ATL_NO_AUTOMATIC_NAMESPACE",
+            "_ATL_NO_HOSTING",
+            "ID_TRACE_LEVEL=1",
+            "_MIDL_USE_GUIDDEF_",
+            "PSAPI_VERSION=2",
+            "UNICODE",
+            "_UNICODE",
+        ],
+        oss_windows = [
+            "MOZC_BUILD",
             "WINVER=0x0A00",
             "_WIN32_WINNT=0x0A00",
             "_ATL_ALL_WARNINGS",

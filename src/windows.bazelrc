@@ -1,0 +1,5 @@
+# Currently there seems to be no way to customize startup option
+# based on the host platform.
+# https://github.com/bazelbuild/bazel/issues/22763
+# Thus having our own file here.
+startup  --output_base=C:/x --windows_enable_symlinks

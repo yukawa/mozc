@@ -440,7 +440,6 @@ def mozc_dataset(
             [
                 ":" + name + "@segmenter_inl_header",
             ],
-        copts = ["-Wno-parentheses"],
         visibility = ["//tools:__subpackages__"],
         deps = [
             "//base:init_mozc_buildtool",
@@ -449,6 +448,13 @@ def mozc_dataset(
             "@com_google_absl//absl/flags:flag",
             "@com_google_absl//absl/strings",
         ],
+        copts = select({
+            "//:compiler_gcc_like": [
+                "-Wno-parentheses",
+            ],
+            "//conditions:default": [
+            ],
+        }),
     )
 
     native.genrule(

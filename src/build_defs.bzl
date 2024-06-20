@@ -47,6 +47,13 @@ load("//:config.bzl", "BRANDING", "MACOS_BUNDLE_ID_PREFIX", "MACOS_MIN_OS_VER")
 load("//bazel:run_build_tool.bzl", "mozc_run_build_tool")
 load("//bazel:stubs.bzl", "pytype_strict_binary", "pytype_strict_library", "register_extension_info")
 
+def copts_unsigned_char():
+    return select({
+        "//:compiler_gcc_like": ["-Wno-parentheses"],
+        "//:compiler_msvc_like": ["/J"],
+        "//conditions:default": [],
+    })
+
 def _update_visibility(visibility = None):
     """
     Returns updated visibility. This is temporarily used for the code location migration.
@@ -63,7 +70,7 @@ def mozc_cc_library(deps = [], copts = [], visibility = None, **kwargs):
     """
     native.cc_library(
         deps = deps + ["//:macro"],
-        copts = copts + ["-funsigned-char"],
+        copts = copts + copts_unsigned_char(),
         visibility = _update_visibility(visibility),
         **kwargs
     )
@@ -79,7 +86,7 @@ def mozc_cc_binary(deps = [], copts = [], **kwargs):
     """
     native.cc_binary(
         deps = deps + ["//:macro"],
-        copts = copts + ["-funsigned-char"],
+        copts = copts + copts_unsigned_char(),
         **kwargs
     )
 
@@ -102,7 +109,7 @@ def mozc_cc_test(name, tags = [], deps = [], copts = [], **kwargs):
         name = name,
         tags = tags,
         deps = deps + ["//:macro"],
-        copts = copts + ["-funsigned-char"],
+        copts = copts + copts_unsigned_char(),
         **kwargs
     )
 
