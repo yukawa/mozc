@@ -124,18 +124,7 @@ jobs:
           ANDROID_NDK_HOME: ""
         run: |
           mkdir out_win_x64
-          bazel --bazelrc=windows.bazelrc build //win32/installer:core_dynamic_crt_artifacts --config oss_windows --verbose_failures --cpu=x64_windows --noincompatible_enable_cc_toolchain_resolution
-          cp bazel-bin/gui/tool/mozc_tool.exe out_win_x64/mozc_tool.exe
-          cp bazel-bin/renderer/win32/win32_renderer_main.exe out_win_x64/mozc_renderer.exe
-          cp bazel-bin/server/mozc_server.exe out_win_x64/mozc_server.exe
-          cp bazel-bin/win32/broker/mozc_broker_main out_win_x64/mozc_broker.exe
-          cp bazel-bin/win32/cache_service/mozc_cache_service.exe out_win_x64/mozc_cache_service.exe
-          bazel --bazelrc=windows.bazelrc build //win32/custom_action:custom_action --config oss_windows --verbose_failures --features=static_link_msvcrt --cpu=x64_windows --noincompatible_enable_cc_toolchain_resolution
-          cp bazel-bin/win32/custom_action/custom_action.dll out_win_x64/custom_action.dll
-          bazel --bazelrc=windows.bazelrc build //win32/tip:mozc_tip --config oss_windows --verbose_failures --features=static_link_msvcrt --cpu=x64_windows --noincompatible_enable_cc_toolchain_resolution
-          cp bazel-bin/win32/tip/mozc_tip.dll out_win_x64/mozc_tip64.dll
-          bazel --bazelrc=windows.bazelrc build //win32/tip:mozc_tip --config oss_windows --verbose_failures --features=static_link_msvcrt --cpu=x64_x86_windows --noincompatible_enable_cc_toolchain_resolution
-          cp bazel-bin/win32/tip/mozc_tip.dll out_win_x64/mozc_tip32.dll
+          bazel --bazelrc=windows.bazelrc build //win32/installer:artifacts --config oss_windows --verbose_failures --cpu=x64_windows --noincompatible_enable_cc_toolchain_resolution
 
   test:
     # https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md

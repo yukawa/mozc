@@ -30,6 +30,7 @@
 load(
     "//:build_defs.bzl",
     "mozc_select",
+    "mozc_win_build_rule",
 )
 load(
     "//:config.bzl",
@@ -38,30 +39,37 @@ load(
 
 package(default_visibility = ["//:__subpackages__"])
 
+mozc_win_build_rule(
+    name = "mozc_tip32",
+    target = "//win32/tip:mozc_tip32",
+    cpu = "x64_x86_windows",
+    static_crt = True,
+)
+
+mozc_win_build_rule(
+    name = "mozc_tip64",
+    target = "//win32/tip:mozc_tip64",
+    cpu = "x64_windows",
+    static_crt = True,
+)
+
+mozc_win_build_rule(
+    name = "custom_action",
+    target = "//win32/custom_action:custom_action",
+    cpu = "x64_windows",
+    static_crt = True,
+)
+
 filegroup(
-    name = "core_dynamic_crt_artifacts",
+    name = "artifacts",
     srcs = [
         "//gui/tool:mozc_tool",
         "//renderer/win32:win32_renderer_main",
         "//server:mozc_server",
         "//win32/broker:mozc_broker_main",
-        "//win32/cache_service:mozc_cache_service",
-    ],
-    target_compatible_with = ["@platforms//os:windows"],
-)
-
-filegroup(
-    name = "custom_action_artifacts",
-    srcs = [
-        "//win32/custom_action:custom_action",
-    ],
-    target_compatible_with = ["@platforms//os:windows"],
-)
-
-filegroup(
-    name = "tip_dll_artifacts",
-    srcs = [
-        "//win32/tip:mozc_tip",
+        ":mozc_tip32",
+        ":mozc_tip64",
+        ":custom_action",
     ],
     target_compatible_with = ["@platforms//os:windows"],
 )

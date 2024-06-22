@@ -454,3 +454,62 @@ MOZC_TAGS = struct(
     MAC_ONLY = ["noandroid", "nolinux", "nowin"],
     WIN_ONLY = ["noandroid", "nolinux", "nomac"],
 )
+
+def _win_executable_transition_impl(settings, attr):
+    _ignore = (settings)
+    features = []
+    if attr.static_crt:
+        features = ["static_link_msvcrt"]
+    return {
+        "//command_line_option:features" : features,
+        "//command_line_option:cpu" : attr.cpu,
+    }
+
+_win_executable_transition = transition(
+    implementation = _win_executable_transition_impl,
+    inputs = [],
+    outputs = [
+        "//command_line_option:features",
+        "//command_line_option:cpu",
+    ]
+)
+
+def _mozc_win_build_rule_impl(ctx):
+    input_file = ctx.file.target
+    output = ctx.actions.declare_file(
+        ctx.label.name + "." + input_file.extension
+    )
+    if input_file.path == output.path:
+        fail("input=%d output=%d" % (input_file.path, output.path))
+
+    # Create a symlink as we do not need to create an actual copy.
+    ctx.actions.symlink(
+        output = output,
+        target_file = input_file,
+        is_executable = True,
+    )
+    return [DefaultInfo(
+        files = depset([output]),
+        executable = output,
+    )]
+
+mozc_win_build_rule = rule(
+    implementation = _mozc_win_build_rule_impl,
+    cfg = _win_executable_transition,
+    attrs = {
+        "_allowlist_function_transition": attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
+        ),
+        "target": attr.label(
+            allow_single_file = [".dll", ".exe"],
+            doc = "the actual Bazel target to be built.",
+            mandatory = True,
+        ),
+        "static_crt": attr.bool(
+            default = False,
+        ),
+        "cpu": attr.string(
+            default = "x64_windows",
+        ),
+    },
+)

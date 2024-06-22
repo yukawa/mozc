@@ -43,12 +43,11 @@ load(
 )
 
 mozc_cc_binary(
-    name = "mozc_tip",
-    srcs = ["mozc_tip_main.cc"],
+    name = "mozc_tip32",
     linkshared = True,
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
-    win_def_file = "mozc_tip.def",
+    srcs = ["mozc_tip_main.cc"],
     deps = [
         ":mozc_tip_resource",
         ":tip_class_factory",
@@ -66,6 +65,36 @@ mozc_cc_binary(
         "//win32/base:tsf_profile",
         "@com_google_absl//absl/base",
     ],
+    win_def_file = "mozc_tip.def",
+    visibility = [
+        "//win32/installer:__subpackages__"
+    ],
+)
+
+mozc_cc_binary(
+    name = "mozc_tip64",
+    linkshared = True,
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    srcs = ["mozc_tip_main.cc"],
+    deps = [
+        ":mozc_tip_resource",
+        ":tip_class_factory",
+        ":tip_dll_module",
+        ":tip_private_context",
+        ":tip_text_service",
+        ":tip_text_service_impl",
+        ":tip_ui_handler",
+        ":tip_ui_handler_impl",
+        "//base:crash_report_handler",
+        "//base/protobuf",
+        "//base/protobuf:message",
+        "//base/win32:com_implements",
+        "//config:stats_config_util",
+        "//win32/base:tsf_profile",
+        "@com_google_absl//absl/base",
+    ],
+    win_def_file = "mozc_tip.def",
     visibility = [
         "//win32/installer:__subpackages__"
     ],
