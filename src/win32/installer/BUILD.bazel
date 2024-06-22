@@ -29,6 +29,7 @@
 
 load(
     "//:build_defs.bzl",
+    "mozc_py_binary",
     "mozc_select",
     "mozc_win_build_rule",
 )
@@ -38,6 +39,36 @@ load(
 )
 
 package(default_visibility = ["//:__subpackages__"])
+
+mozc_win_build_rule(
+    name = "mozc_tool",
+    target = "//gui/tool:mozc_tool",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_renderer",
+    target = "//renderer/win32:win32_renderer_main",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_server",
+    target = "//server:mozc_server",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_broker",
+    target = "//win32/broker:mozc_broker_main",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_cache_service",
+    target = "//win32/cache_service:mozc_cache_service",
+    cpu = "x64_windows",
+)
 
 mozc_win_build_rule(
     name = "mozc_tip32",
@@ -63,13 +94,69 @@ mozc_win_build_rule(
 filegroup(
     name = "artifacts",
     srcs = [
-        "//gui/tool:mozc_tool",
-        "//renderer/win32:win32_renderer_main",
-        "//server:mozc_server",
-        "//win32/broker:mozc_broker_main",
+        ":mozc_tool",
+        ":mozc_renderer",
+        ":mozc_server",
+        ":mozc_broker",
+        ":mozc_cache_service",
         ":mozc_tip32",
         ":mozc_tip64",
         ":custom_action",
+    ],
+    target_compatible_with = ["@platforms//os:windows"],
+)
+
+mozc_py_binary(
+    name = "build_installer",
+    srcs = ["build_installer.py"],
+    test_lib = False,
+    deps = [
+        "//build_tools:mozc_version",
+        "//build_tools:vs_util",
+    ],
+)
+
+exports_files([
+    "installer_oss_64bit.wxs",
+])
+
+genrule(
+    name = "installer",
+    srcs = [
+        ":mozc_tool",
+        ":mozc_renderer",
+        ":mozc_server",
+        ":mozc_broker",
+        ":mozc_cache_service",
+        ":mozc_tip32",
+        ":mozc_tip64",
+        ":custom_action",
+        ":installer_oss_64bit.wxs",
+        "//base:mozc_version_txt",
+        "//data/images/win:product_icon.ico",
+        "//data/installer:credits_en.html",
+        "@qt_win//:bin/Qt6Core.dll",
+    ],
+    outs = ["Mozc64_bazel.msi"],
+    cmd = " ".join([
+            "$(location :build_installer)",
+            "--output=$@",
+            "--version_file=$(location //base:mozc_version_txt)",
+            "--mozc_tool=$(location :mozc_tool)",
+            "--mozc_renderer=$(location :mozc_renderer)",
+            "--mozc_server=$(location :mozc_server)",
+            "--mozc_broker=$(location :mozc_broker)",
+            "--mozc_cache_service=$(location :mozc_cache_service)",
+            "--mozc_tip32=$(location :mozc_tip32)",
+            "--mozc_tip64=$(location :mozc_tip64)",
+            "--custom_action=$(location :custom_action)",
+            "--icon_path=$(location //data/images/win:product_icon.ico)",
+            "--credit_file=$(location //data/installer:credits_en.html)",
+            "--qt_core_dll=$(location @qt_win//:bin/Qt6Core.dll)",
+            "--wxs_path=$(location :installer_oss_64bit.wxs)",
+    ]),
+    tools = [
+        ":build_installer",
     ],
     target_compatible_with = ["@platforms//os:windows"],
 )

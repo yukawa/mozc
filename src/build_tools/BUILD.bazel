@@ -103,6 +103,11 @@ mozc_py_binary(
 )
 
 mozc_py_library(
+    name = "vs_util",
+    srcs = ["vs_util.py"],
+)
+
+mozc_py_library(
     name = "util",
     srcs = ["util.py"],
 )

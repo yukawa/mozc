@@ -74,7 +74,7 @@ jobs:
           path: src/out_win/Release/Mozc64.msi
           if-no-files-found: warn
 
-  experimental_bazel_build:
+  build_bazel:
     # https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md
     runs-on: windows-2022
     timeout-minutes: 120
@@ -117,14 +117,21 @@ jobs:
         run: |
           rmdir third_party\qt_src /s /q
 
-      - name: build executables for x64 env
+      - name: build installer
         shell: cmd
         working-directory: .\src
         env:
           ANDROID_NDK_HOME: ""
         run: |
           mkdir out_win_x64
-          bazel --bazelrc=windows.bazelrc build //win32/installer:artifacts --config oss_windows --verbose_failures --cpu=x64_windows --noincompatible_enable_cc_toolchain_resolution
+          bazel --bazelrc=windows.bazelrc build //win32/installer:installer --config oss_windows --verbose_failures --noincompatible_enable_cc_toolchain_resolution
+
+      - name: upload Mozc64_bazel.msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mozc64_bazel.msi
+          path: bazel-bin/win32/installer/Mozc64_bazel.msi
+          if-no-files-found: warn
 
   test:
     # https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md
