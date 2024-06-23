@@ -137,7 +137,7 @@ genrule(
         "//data/installer:credits_en.html",
         "@qt_win//:bin/Qt6Core.dll",
     ],
-    outs = ["Mozc64_bazel.msi"],
+    outs = ["Mozc64.msi"],
     cmd = " ".join([
             "$(location :build_installer)",
             "--output=$@",

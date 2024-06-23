@@ -41,6 +41,12 @@ package(
     default_visibility = ["//visibility:private"],
 )
 
+cc_import(
+  name = "mozc_broker_resource",
+  static_library = "mozc_broker_res.lib",
+  alwayslink = True,
+)
+
 mozc_cc_binary(
     name = "mozc_broker_main",
     srcs = ["mozc_broker_main.cc"],
@@ -48,6 +54,7 @@ mozc_cc_binary(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":prelauncher",
+        ":mozc_broker_resource",
         "//base:crash_report_handler",
         "//base:init_mozc",
         "//base:system_util",
@@ -58,21 +65,6 @@ mozc_cc_binary(
     visibility = [
         "//win32/installer:__subpackages__"
     ],
-)
-
-lexan.resource_files(
-    name = "mozc_broker_resource",
-    manifests = [
-        "mozc_broker.exe.manifest",
-    ],
-    rc_files = [
-        "mozc_broker.rc",
-    ],
-    resources = [
-        "mozc_broker_resource.h",
-    ],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
 )
 
 mozc_cc_library(

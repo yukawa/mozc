@@ -34,6 +34,12 @@ load(
 )
 load("//bazel:stubs.bzl", "lexan")
 
+cc_import(
+  name = "custom_action_resource",
+  static_library = "custom_action_res.lib",
+  alwayslink = True,
+)
+
 mozc_cc_binary(
     name = "custom_action",
     srcs = [
@@ -45,6 +51,7 @@ mozc_cc_binary(
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     win_def_file = "custom_action.def",
+    additional_linker_inputs = [":mozc_custom_action.res"],
     deps = [
         ":custom_action_resource",  # buildcleaner: keep
         "//base:const",
@@ -71,12 +78,4 @@ mozc_cc_binary(
     visibility = [
         "//win32/installer:__subpackages__"
     ],
-)
-
-lexan.resource_files(
-    name = "custom_action_resource",
-    rc_files = ["custom_action.rc"],
-    resources = ["resource.h"],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
 )

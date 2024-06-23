@@ -42,6 +42,18 @@ load(
     "features_gdi",
 )
 
+cc_import(
+    name = "mozc_tip32_resource",
+    static_library = "mozc_tip32_res.lib",
+    alwayslink = True,
+)
+
+cc_import(
+    name = "mozc_tip64_resource",
+    static_library = "mozc_tip64_res.lib",
+    alwayslink = True,
+)
+
 mozc_cc_binary(
     name = "mozc_tip32",
     linkshared = True,
@@ -49,7 +61,7 @@ mozc_cc_binary(
     target_compatible_with = ["@platforms//os:windows"],
     srcs = ["mozc_tip_main.cc"],
     deps = [
-        ":mozc_tip_resource",
+        ":mozc_tip32_resource",
         ":tip_class_factory",
         ":tip_dll_module",
         ":tip_private_context",
@@ -78,7 +90,7 @@ mozc_cc_binary(
     target_compatible_with = ["@platforms//os:windows"],
     srcs = ["mozc_tip_main.cc"],
     deps = [
-        ":mozc_tip_resource",
+        ":mozc_tip64_resource",
         ":tip_class_factory",
         ":tip_dll_module",
         ":tip_private_context",
@@ -98,20 +110,6 @@ mozc_cc_binary(
     visibility = [
         "//win32/installer:__subpackages__"
     ],
-)
-
-lexan.resource_files(
-    name = "mozc_tip_resource",
-    rc_files = [
-        "tip_resource.rc",
-    ],
-    resources = [
-        "tip_resource.h",
-        "//data/images/win:icons",
-        "//win32/base:display_name_resource_h_for_rc",
-    ],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
 )
 
 mozc_cc_library(

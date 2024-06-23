@@ -46,23 +46,20 @@ load("//bazel:stubs.bzl", "lexan")
 
 package(default_visibility = ["//:__subpackages__"])
 
+cc_import(
+  name = "mozc_server_res",
+  static_library = "mozc_server_res.lib",
+  alwayslink = True,
+)
+
 mozc_cc_binary(
     name = "mozc_server",
+    srcs = [],
     deps = [
         ":mozc_server_lib",
     ] + mozc_select(
-        windows = ["mozc_server_resources"],
+        windows = ["mozc_server_res"],
     ),
-)
-
-lexan.resource_files(
-    name = "mozc_server_resources",
-    manifests = [
-        "mozc_server.exe.manifest",
-    ],
-    rc_files = [
-        "mozc_server.rc",
-    ],
 )
 
 mozc_cc_library(

@@ -40,30 +40,25 @@ load("//bazel:stubs.bzl", "lexan")
 
 package(default_visibility = ["//:__subpackages__"])
 
+cc_import(
+  name = "mozc_cache_service_resources",
+  static_library = "mozc_cache_service_res.lib",
+  alwayslink = True,
+)
+
 mozc_cc_binary(
     name = "mozc_cache_service",
     srcs = ["mozc_cache_service.cc"],
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
+    additional_linker_inputs = [],
     deps = [
         ":cache_service_manager",
+        ":mozc_cache_service_resources",
         "//base:system_util",
         "//base/win32:wide_char",
         "//base/win32:winmain",
         "@com_microsoft_wil//:wil",
-    ],
-)
-
-lexan.resource_files(
-    name = "mozc_cache_service_resources",
-    manifests = [
-        "mozc_cache_service.exe.manifest",
-    ],
-    rc_files = [
-        "mozc_cache_service.rc",
-    ],
-    resources = [
-        "mozc_cache_service_resource.h",
     ],
 )
 

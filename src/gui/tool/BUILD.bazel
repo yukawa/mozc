@@ -90,6 +90,13 @@ mozc_cc_qt_library(
     ),
 )
 
+
+cc_import(
+  name = "mozc_tool_resource",
+  static_library = "mozc_tool_res.lib",
+  alwayslink = True,
+)
+
 mozc_cc_qt_library(
     name = "mozc_tool_main_lib",
     srcs = ["mozc_tool_main.cc"],
@@ -100,6 +107,7 @@ mozc_cc_qt_library(
     ] + mozc_select(
         windows = [
             "//base/win32:winmain",
+            ":mozc_tool_resource",
         ],
     ),
 )

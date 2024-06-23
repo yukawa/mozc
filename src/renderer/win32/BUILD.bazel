@@ -44,6 +44,12 @@ package(
     features = ["gdi"],
 )
 
+cc_import(
+  name = "win32_renderer_main_resources",
+  static_library = "mozc_renderer_res.lib",
+  alwayslink = True,
+)
+
 mozc_cc_binary(
     name = "win32_renderer_main",
     srcs = ["win32_renderer_main.cc"],
@@ -57,20 +63,6 @@ mozc_cc_binary(
         "//renderer:init_mozc_renderer",
     ],
     visibility = ["//win32/installer:__subpackages__"],
-)
-
-lexan.resource_files(
-    name = "win32_renderer_main_resources",
-    manifests = [
-        "mozc_renderer.exe.manifest",
-    ],
-    rc_files = [
-        "mozc_renderer.rc",
-    ],
-    resources = [
-        "resource.h",
-        "//data/images/win:candidate_window_logo",
-    ],
 )
 
 mozc_cc_library(
