@@ -122,6 +122,18 @@
       ],
     },
     {
+      'target_name': 'dataset_magic_writer',
+      'type': 'executable',
+      'toolsets': [ 'host' ],
+      'sources': [
+        'dataset_magic_writer.cc',
+      ],
+      'dependencies': [
+        '<(mozc_oss_src_dir)/base/base.gyp:base',
+        '<(mozc_oss_src_dir)/base/base.gyp:base_core',
+      ],
+    },
+    {
       'target_name': 'serialized_dictionary',
       'type': 'static_library',
       'toolsets': ['target', 'host'],

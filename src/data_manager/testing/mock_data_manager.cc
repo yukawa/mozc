@@ -42,11 +42,8 @@ namespace {
 // EmbeddedFile kMockMozcDataSet is defined in this header file.
 #include "data_manager/testing/mock_mozc_data.inc"
 
-#ifndef MOZC_DATASET_MAGIC_NUMBER
-#error "MOZC_DATASET_MAGIC_NUMBER is not defined by build system"
-#endif  // MOZC_DATASET_MAGIC_NUMBER
-
-constexpr char kMagicNumber[] = MOZC_DATASET_MAGIC_NUMBER;
+// kMagicNumber is embedded.
+#include "data_manager/testing/mock_mozc_data.inc.magic.inc"
 
 }  // namespace
 

@@ -195,6 +195,21 @@ mozc_cc_binary(
     ],
 )
 
+mozc_cc_binary(
+    name = "dataset_magic_writer",
+    srcs = ["dataset_magic_writer.cc"],
+    deps = [
+        "//base:file_stream",
+        "//base:file_util",
+        "//base:init_mozc_buildtool",
+        "//base:vlog",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 mozc_cc_library(
     name = "dataset_reader",
     srcs = ["dataset_reader.cc"],

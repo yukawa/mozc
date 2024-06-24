@@ -67,9 +67,6 @@
         'gen_embedded_mozc_dataset_for_<(dataset_tag)#host',
         '<@(additional_dendencies)',
       ],
-      'defines': [
-        'MOZC_DATASET_MAGIC_NUMBER="<(magic_number)"',
-      ],
     },
     {
       'target_name': 'gen_embedded_mozc_dataset_for_<(dataset_tag)',
@@ -97,6 +94,23 @@
             '--output=<(gen_out_dir)/<(out_mozc_data_header)',
           ],
         },
+        {
+          'action_name': 'gen_mozc_dataset_magic_for_<(dataset_tag)',
+          'variables': {
+            'generator': '<(PRODUCT_DIR)/dataset_magic_writer<(EXECUTABLE_SUFFIX)',
+          },
+          'inputs': [
+          ],
+          'outputs': [
+            '<(gen_out_dir)/<(out_mozc_data_header).magic.inc',
+          ],
+          'action': [
+            '<(generator)',
+            '--magic=<(magic_number)',
+            '--output=<(gen_out_dir)/<(out_mozc_data_header).magic.inc',
+            '--name=<(dataset_tag)',
+          ],
+        },
       ],
     },
     {
@@ -105,6 +119,7 @@
       'toolsets': ['host'],
       'dependencies': [
         '../data_manager_base.gyp:dataset_writer_main',
+        '../data_manager_base.gyp:dataset_magic_writer',
         '<(mozc_oss_src_dir)/rewriter/rewriter_base.gyp:gen_rewriter_files#host',
         '<(dataset_tag)_data_manager_base.gyp:gen_separate_pos_matcher_data_for_<(dataset_tag)#host',
         '<(dataset_tag)_data_manager_base.gyp:gen_separate_user_pos_data_for_<(dataset_tag)#host',

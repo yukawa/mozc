@@ -243,6 +243,17 @@ def mozc_dataset(
     )
 
     native.genrule(
+        name = name + "@magic_header",
+        srcs = sources,
+        outs = [outs[1] + ".magic.inc"],
+        cmd = (
+            "$(location //data_manager:dataset_magic_writer) " +
+            "--magic='" + magic + "' --output=$@" + " --name=" + name
+        ),
+        tools = ["//data_manager:dataset_magic_writer"],
+    )
+
+    native.genrule(
         name = name + "@user_pos_manager_data",
         srcs = [
             ":" + name + "@user_pos",

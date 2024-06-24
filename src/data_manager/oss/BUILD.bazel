@@ -111,11 +111,9 @@ mozc_cc_library(
     srcs = [
         "oss_data_manager.cc",
         ":mozc_dataset_for_oss@header",
+        ":mozc_dataset_for_oss@magic_header",
     ],
     hdrs = ["oss_data_manager.h"],
-    copts = [
-        "-DMOZC_DATASET_MAGIC_NUMBER='\"" + MOZC_DATASET_MAGIC_NUMBER + "\"'",
-    ],
     deps = [
         "//base:embedded_file",
         "//data_manager",
