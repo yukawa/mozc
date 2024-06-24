@@ -27,65 +27,81 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Win32 broker
-
 load(
     "//:build_defs.bzl",
-    "MOZC_TAGS",
-    "mozc_cc_binary",
-    "mozc_cc_library",
+    "mozc_py_binary",
+    "mozc_select",
+    "mozc_win_build_rule",
 )
-load("//bazel:stubs.bzl", "lexan")
-
-package(
-    default_visibility = ["//visibility:private"],
+load(
+    "//:config.bzl",
+    "BRANDING",
 )
 
-mozc_cc_binary(
-    name = "mozc_broker_main",
-    srcs = ["mozc_broker_main.cc"],
-    tags = MOZC_TAGS.WIN_ONLY,
+package(default_visibility = ["//:__subpackages__"])
+
+mozc_win_build_rule(
+    name = "mozc_tool",
+    target = "//gui/tool:mozc_tool",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_renderer",
+    target = "//renderer/win32:win32_renderer_main",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_server",
+    target = "//server:mozc_server",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_broker",
+    target = "//win32/broker:mozc_broker_main",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_cache_service",
+    target = "//win32/cache_service:mozc_cache_service",
+    cpu = "x64_windows",
+)
+
+mozc_win_build_rule(
+    name = "mozc_tip32",
+    target = "//win32/tip:mozc_tip",
+    cpu = "x64_x86_windows",
+    static_crt = True,
+)
+
+mozc_win_build_rule(
+    name = "mozc_tip64",
+    target = "//win32/tip:mozc_tip",
+    cpu = "x64_windows",
+    static_crt = True,
+)
+
+mozc_win_build_rule(
+    name = "custom_action",
+    target = "//win32/custom_action:custom_action",
+    cpu = "x64_windows",
+    static_crt = True,
+)
+
+filegroup(
+    name = "artifacts",
+    srcs = [
+        ":mozc_tool",
+        ":mozc_renderer",
+        ":mozc_server",
+        ":mozc_broker",
+        ":mozc_cache_service",
+        ":mozc_tip32",
+        ":mozc_tip64",
+        ":custom_action",
+    ],
     target_compatible_with = ["@platforms//os:windows"],
-    deps = [
-        ":prelauncher",
-        "//base:crash_report_handler",
-        "//base:init_mozc",
-        "//base:system_util",
-        "//base/win32:winmain",
-        "//config:stats_config_util",
-        "@com_google_absl//absl/flags:flag",
-    ],
-    visibility = [
-        "//win32/installer:__subpackages__"
-    ],
-)
-
-lexan.resource_files(
-    name = "mozc_broker_resource",
-    manifests = [
-        "mozc_broker.exe.manifest",
-    ],
-    rc_files = [
-        "mozc_broker.rc",
-    ],
-    resources = [
-        "mozc_broker_resource.h",
-    ],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
-)
-
-mozc_cc_library(
-    name = "prelauncher",
-    srcs = ["prelauncher.cc"],
-    hdrs = ["prelauncher.h"],
-    tags = MOZC_TAGS.WIN_ONLY,
-    target_compatible_with = ["@platforms//os:windows"],
-    deps = [
-        "//base:run_level",
-        "//base:system_util",
-        "//client",
-        "//client:client_interface",
-        "//renderer:renderer_client",
-    ],
 )
