@@ -102,6 +102,26 @@ mozc_py_binary(
     deps = [":mozc_version_lib"],
 )
 
+mozc_py_binary(
+    name = "msvs_rc_wrapper",
+    srcs = ["msvs_rc_wrapper.py"],
+)
+
+bzl_library(
+    name = "mozc_win32_resource",
+    srcs = ["mozc_win32_resource.bzl"],
+)
+
+exports_files([
+    "mozc_win32_resource_template.rc",
+])
+
+mozc_py_binary(
+    name = "gen_win32_resource_header",
+    srcs = ["gen_win32_resource_header.py"],
+    deps = [":mozc_version_lib"],
+)
+
 mozc_py_library(
     name = "util",
     srcs = ["util.py"],

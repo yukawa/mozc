@@ -35,6 +35,7 @@ load(
     "mozc_cc_binary",
     "mozc_cc_library",
     "mozc_cc_test",
+    "mozc_win32_resource_from_template",
 )
 load("//bazel:stubs.bzl", "lexan")
 
@@ -59,14 +60,12 @@ mozc_cc_binary(
     ],
 )
 
-lexan.resource_files(
+mozc_win32_resource_from_template(
     name = "win32_renderer_main_resources",
     manifests = [
         "mozc_renderer.exe.manifest",
     ],
-    rc_files = [
-        "mozc_renderer.rc",
-    ],
+    src = "mozc_renderer.rc",
     resources = [
         "resource.h",
         "//data/images/win:candidate_window_logo",

@@ -36,6 +36,7 @@ load(
     "mozc_cc_library",
     "mozc_macos_application",
     "mozc_select",
+    "mozc_win32_resource_from_template",
 )
 load(
     "//:config.bzl",
@@ -55,14 +56,14 @@ mozc_cc_binary(
     ),
 )
 
-lexan.resource_files(
+mozc_win32_resource_from_template(
     name = "mozc_server_resources",
+    src = "mozc_server_resources.rc",
     manifests = [
         "mozc_server.exe.manifest",
     ],
-    rc_files = [
-        "mozc_server.rc",
-    ],
+    resources = ["resource.h"],
+    target_compatible_with = ["@platforms//os:windows"],
 )
 
 mozc_cc_library(

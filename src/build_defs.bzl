@@ -52,6 +52,7 @@ load(
 )
 load("//bazel:run_build_tool.bzl", "mozc_run_build_tool")
 load("//bazel:stubs.bzl", "pytype_strict_binary", "pytype_strict_library", "register_extension_info")
+load("@bazel_skylib//lib:paths.bzl", "paths")
 
 # Tags aliases for build filtering.
 MOZC_TAGS = struct(
@@ -130,6 +131,169 @@ register_extension_info(
     extension = mozc_cc_test,
     label_regex_for_dep = "{extension_name}",
 )
+
+def _build_win_rc(ctx, resource_name, rc_file, resources, defines):
+    cpu = "win_x64"
+    resource_file = ctx.actions.declare_file(resource_name)
+    source_dir = ctx.label.package
+
+    includes = [
+        rc_file.dirname,
+        source_dir,
+        ctx.var["BINDIR"],
+        ctx.var["GENDIR"],
+    ] + [
+        r"C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um",
+        r"C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\shared",
+    ] + ["./"]
+
+    transitive_defines = []
+    for resource in ctx.attr.resources:
+        if CcInfo in resource:
+            transitive_defines += resource[CcInfo].compilation_context.defines.to_list()
+
+    copts_defines = [
+        copt[2:] for copt in ctx.fragments.cpp.copts if copt.startswith(("-D", "/D"))
+    ]
+
+    args = ctx.actions.args()
+    args.add_all(
+        copts_defines + transitive_defines + defines + ["RC_INVOKED"] + {
+            "win_x64": ["_AMD64_"],
+            "win_x86": ["_X86_"],
+        }.get(cpu, []),
+        format_each = "/D%s",
+        uniquify = True,
+    )
+    args.add_all(includes, format_each = "/I%s", uniquify = True)
+    args.add(resource_file, format = "/fo%s")
+    args.add(rc_file)
+    ctx.actions.run(
+        inputs = [rc_file] + resources,
+        outputs = [resource_file],
+        executable = ctx.executable._rc,
+        arguments = [args],
+        mnemonic = "WindowsRc",
+        progress_message = "Compiling resources {0} to {1}".format(
+            rc_file.basename,
+            resource_file.basename,
+        ),
+        toolchain = None,
+    )
+
+    return resource_file
+
+def _win32_res_rule_impl(ctx):
+    rc_files = ctx.files.rc_files
+    resources = ctx.files.resources
+    manifests = ctx.files.manifests
+    defines = ctx.attr.defines
+
+    resource_files = []
+    for rc_file in rc_files:
+        resource_files.append(_build_win_rc(
+            ctx = ctx,
+            resource_name = paths.replace_extension(rc_file.path, ".res"),
+            resources = resources,
+            rc_file = rc_file,
+            defines = defines,
+        ))
+    resource_file_provider = DefaultInfo(files = depset(resource_files))
+
+    resource_link_flags = [res.path for res in resource_files]
+
+    manifest_flags = []
+    if len(manifests) > 0:
+        manifest_flags.append("/MANIFEST:EMBED")
+        for manifest in manifests:
+            manifest_flags.append("/MANIFESTINPUT:{}".format(manifest.path))
+
+    linking_context = cc_common.create_linking_context(
+        additional_inputs = resource_files + manifests,
+        user_link_flags = resource_link_flags + manifest_flags,
+    )
+    return [
+        resource_file_provider,
+        CcInfo(linking_context = linking_context),
+    ]
+
+_win32_res_rule = rule(
+    _win32_res_rule_impl,
+    attrs = {
+        "rc_files": attr.label_list(
+            allow_files = [".rc"],
+        ),
+        "resources": attr.label_list(
+            allow_files = True,
+        ),
+        "manifests": attr.label_list(
+            allow_files = [".manifest"],
+        ),
+        "defines": attr.string_list(
+            allow_empty = True,
+            default = [],
+            mandatory = False,
+        ),
+        "_rc": attr.label(
+            default = Label("//build_tools:msvs_rc_wrapper"),
+            executable = True,
+            cfg = "exec",
+        )
+    },
+    provides = [CcInfo],
+    fragments = ["cpp"],
+)
+
+def mozc_win32_resource(name, **kwargs):
+    _win32_res_rule(name = name, **kwargs)
+
+register_extension_info(
+    extension = mozc_win32_resource,
+    label_regex_for_dep = "{extension_name}",
+)
+
+def _mozc_gen_win32_resource_file(
+    name,
+    src):
+    mozc_run_build_tool(
+        name = name,
+        srcs = {
+            "--main": [src],
+            "--template": ["//build_tools:mozc_win32_resource_template.rc"],
+            "--version_file": ["//base:mozc_version_txt"],
+        },
+        args = [
+        ],
+        outs = {
+            "--output": name,
+        },
+        tool = "//build_tools:gen_win32_resource_header",
+    )
+
+def mozc_win32_resource_from_template(
+    name,
+    src,
+    manifests = [],
+    resources = [],
+    **kwargs):
+    generated_rc_file = name + "_gen.rc"
+    _mozc_gen_win32_resource_file(
+        generated_rc_file,
+        src = src,
+    )
+    _rc_defines = {
+        "Mozc": ["MOZC_BUILD"],
+        "GoogleJapaneseInput": ["GOOGLE_JAPANESE_INPUT_BUILD"],
+    }.get(BRANDING, [])
+    # Create main resource
+    mozc_win32_resource(
+        name = name,
+        rc_files = [":" + generated_rc_file],
+        manifests = manifests,
+        resources = resources,
+        defines = _rc_defines,
+        target_compatible_with = ["@platforms//os:windows"],
+    )
 
 def mozc_cc_win32_library(
         name,
