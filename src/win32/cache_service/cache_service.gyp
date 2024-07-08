@@ -97,11 +97,10 @@
           'type': 'executable',
           'sources': [
             'mozc_cache_service.cc',
-            '<(gen_out_dir)/mozc_cache_service_autogen.rc',
+            'mozc_cache_service.rc',
           ],
           'dependencies': [
             'cache_service_manager',
-            'gen_mozc_cache_service_resource_header',
           ],
           'msvs_settings': {
             'VCManifestTool': {

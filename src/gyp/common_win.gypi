@@ -409,6 +409,9 @@
           '<(SHARED_INTERMEDIATE_DIR)/',
           '<(DEPTH)/',
         ],
+        'AdditionalOptions': [
+          '/c65001'
+        ],
       },
     },
   },

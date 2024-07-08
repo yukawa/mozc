@@ -733,12 +733,11 @@
         ['OS=="win"', {
           'product_name': '<(tool_product_name_win)',
           'sources': [
-            '<(gen_out_dir)/tool/mozc_tool_autogen.rc',
+            'tool/mozc_tool.rc',
           ],
           'dependencies': [
             '<(mozc_oss_src_dir)/base/base.gyp:base',
             '<(mozc_oss_src_dir)/win32/base/win32_base.gyp:ime_base',
-            'gen_mozc_tool_header',
           ],
           'msvs_settings': {
             'VCManifestTool': {

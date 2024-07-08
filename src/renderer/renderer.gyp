@@ -324,7 +324,7 @@
             'win32/candidate_window.cc',
             'win32/infolist_window.cc',
             'win32/indicator_window.cc',
-            '<(gen_out_dir)/mozc_renderer_autogen.rc',
+            'win32/mozc_renderer.rc',
           ],
           'dependencies': [
             '<(mozc_oss_src_dir)/base/absl.gyp:absl_strings',
@@ -337,7 +337,6 @@
             '<(mozc_oss_src_dir)/protocol/protocol.gyp:commands_proto',
             '<(mozc_oss_src_dir)/protocol/protocol.gyp:config_proto',
             '<(mozc_oss_src_dir)/protocol/protocol.gyp:renderer_proto',
-            'gen_mozc_renderer_resource_header#host',
             'renderer_server',
             'renderer_style_handler',
             'table_layout',

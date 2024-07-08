@@ -79,10 +79,9 @@
         ['OS=="win"', {
           'product_name': '<(converter_product_name_win)',
           'sources': [
-            '<(gen_out_dir)/mozc_server_autogen.rc',
+            'mozc_server.rc',
           ],
           'dependencies': [
-            'gen_mozc_server_resource_header',
           ],
           'msvs_settings': {
             'VCManifestTool': {

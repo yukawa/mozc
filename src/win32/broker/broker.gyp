@@ -76,7 +76,7 @@
           'conditions': [
             ['OS=="win"', {
               'sources': [
-                '<(gen_out_dir)/mozc_broker_autogen.rc',
+                'mozc_broker.rc',
                 'prelauncher.cc',
               ],
               'dependencies': [
@@ -86,7 +86,6 @@
                 '<(mozc_oss_src_dir)/protocol/protocol.gyp:config_proto',
                 '<(mozc_oss_src_dir)/renderer/renderer.gyp:renderer_client',
                 '../base/win32_base.gyp:ime_base',
-                'gen_mozc_broker_resource_header',
               ],
               'msvs_settings': {
                 'VCManifestTool': {

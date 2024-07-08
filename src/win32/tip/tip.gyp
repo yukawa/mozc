@@ -145,11 +145,10 @@
           'product_extension': 'dll',
           'type': 'shared_library',
           'sources': [
-            '<(gen_out_dir)/tip_resource_autogen.rc',
+            'mozc_tip32.rc',
             'mozc_tip.def',
           ],
           'dependencies': [
-            'gen_mozc_tip_resource_header',
             'tip_core',
           ],
         },
@@ -159,11 +158,10 @@
           'product_extension': 'dll',
           'type': 'shared_library',
           'sources': [
-            '<(gen_out_dir)/tip_resource_autogen.rc',
+            'mozc_tip64.rc',
             'mozc_tip.def',
           ],
           'dependencies': [
-            'gen_mozc_tip_resource_header',
             'tip_core',
           ],
           'msvs_settings': {

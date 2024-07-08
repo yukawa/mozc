@@ -70,7 +70,7 @@
           'sources': [
             'custom_action.cc',
             'custom_action.def',
-            '<(gen_out_dir)/custom_action_autogen.rc',
+            'custom_action.rc',
           ],
           'dependencies': [
             '<(mozc_oss_src_dir)/base/base.gyp:base',
@@ -82,7 +82,6 @@
             '../base/win32_base.gyp:imframework_util',
             '../base/win32_base.gyp:input_dll_import_lib',
             '../cache_service/cache_service.gyp:cache_service_manager',
-            'gen_custom_action_resource_header',
           ],
           'msvs_settings': {
             'VCLinkerTool': {

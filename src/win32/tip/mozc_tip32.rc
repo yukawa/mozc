@@ -1,0 +1,97 @@
+LANGUAGE 0x11, 0x01
+
+101     ICON       "data/images/win/product_icon_langbar.ico"  // IDI_IMM32
+112     ICON       "data/images/win/ms_direct_input_a.ico"
+104     ICON       "data/images/win/ms_hiragana_a.ico"
+106     ICON       "data/images/win/tools_icon_a.ico"
+107     ICON       "data/images/win/tools_icon.ico"
+108     ICON       "data/images/win/tools_properties_a.ico"
+109     ICON       "data/images/win/tools_properties.ico"
+110     ICON       "data/images/win/tools_dictionary_a.ico"
+111     ICON       "data/images/win/tools_dictionary.ico"
+114     ICON       "data/images/win/ms_katakana_a.ico"
+116     ICON       "data/images/win/ms_alpha_half_a.ico"
+118     ICON       "data/images/win/ms_alpha_a.ico"
+120     ICON       "data/images/win/ms_katakana_half_a.ico"
+122     ICON       "data/images/win/ms_disabled_a.ico"
+123     ICON       "data/images/win/ms_disabled.ico"
+
+STRINGTABLE LANGUAGE 0x11, 0x01
+{
+  101, 	"Mozc"
+  104, 	"入力モード"
+  105, 	"右クリックで IME のオプションを表示します"
+  106, 	"直接入力"
+  107, 	"ひらがな"
+  108, 	"ツール"
+  109, 	"プロパティ"
+  110, 	"辞書ツール"
+  111, 	"単語登録"
+  112, 	"ヘルプ"
+  114, 	"キャンセル"
+  116, 	"Mozc について"
+  117, 	"全角カタカナ"
+  118, 	"半角英数"
+  119, 	"全角英数"
+  120, 	"半角カタカナ"
+  121, 	"再変換"
+  122, 	"IME が無効です"
+  130, 	"Mozc サジェストウィンドウ"
+  131, 	"Mozc サジェスト候補ウィンドウ"
+  132, 	"Mozc 候補ウィンドウ"
+  133, 	"Mozc インジケータ ウィンドウ"
+  201, 	"Mozc"
+}
+
+STRINGTABLE LANGUAGE 0x9, 0x0
+{
+  101, 	"Mozc"
+  104, 	"Input Mode"
+  105, 	"Right click to show IME options"
+  106, 	"Direct Input"
+  107, 	"Hiragana"
+  108, 	"Tools"
+  109, 	"Properties"
+  110, 	"Dictionary Tool"
+  111, 	"Add Word"
+  112, 	"Help"
+  114, 	"Cancel"
+  116, 	"About Mozc"
+  117, 	"Full-width Katakana"
+  118, 	"Half-width Alphanumeric"
+  119, 	"Full-width Alphanumeric"
+  120, 	"Half-width Katakana"
+  121, 	"Reconversion"
+  122, 	"IME is disabled"
+  130, 	"Mozc Suggestion Window"
+  131, 	"Mozc Suggestion Candidate Window"
+  132, 	"Mozc Candidate Window"
+  201, 	"Mozc"
+}
+
+1 VERSIONINFO
+FILEVERSION 2,30,5490,100
+PRODUCTVERSION 2,30,5490,100
+FILEOS 0x4
+FILETYPE 0x2
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "041104b0"
+        {
+            VALUE "CompanyName", "Google Inc."
+            VALUE "FileDescription", "Mozc TIP Module"
+            VALUE "FileVersion", "2.30.5490.100"
+            VALUE "InternalName", "mozc_tip32"
+            VALUE "LegalCopyright", "Copyright 2024 Google LLC. All Rights Reserved."
+            VALUE "OriginalFilename", "mozc_tip32.dll"
+            VALUE "ProductName", "Mozc"
+            VALUE "ProductVersion", "2.30.5490.100"
+        }
+    }
+
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0411 0x04B0
+    }
+}
