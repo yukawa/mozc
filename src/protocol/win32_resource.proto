@@ -31,12 +31,12 @@ syntax = "proto2";
 
 package mozc;
 
-message Win32Resource {
+enum LanguageId {
+  EN_US = 0x0409;
+  JA_JP = 0x0411;
+}
 
-  enum LanguageId {
-    EN_US = 0x0409;
-    JA_JP = 0x0411;
-  }
+message Win32Resource {
 
   message BrandDependentString {
     optional string brand_name = 1;
@@ -51,7 +51,7 @@ message Win32Resource {
   message StringInfo {
     optional uint32 id = 1;
     optional string name = 2;
-    repeated LocalizedBrandDependentString = 3;
+    repeated LocalizedBrandDependentString value = 3;
   }
 
   enum FileType {
@@ -72,13 +72,13 @@ message Win32Resource {
   }
 
   message LocalizedVersionString {
-    optional uint16 language = 1;
-    optional BrandDependentString company_name = 2;
-    optional BrandDependentString file_description = 3;
-    optional BrandDependentString internal_name = 4;
-    optional BrandDependentString legal_copyright = 5;
-    optional BrandDependentString original_file_name = 4;
-    optional BrandDependentString product_name = 5;
+    optional uint32 language = 1;
+    repeated BrandDependentString company_name = 2;
+    repeated BrandDependentString file_description = 3;
+    repeated BrandDependentString internal_name = 4;
+    repeated BrandDependentString legal_copyright = 5;
+    repeated BrandDependentString original_file_name = 6;
+    repeated BrandDependentString product_name = 7;
   }
 
   message VersionInfo {

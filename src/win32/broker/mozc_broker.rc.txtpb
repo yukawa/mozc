@@ -1,0 +1,30 @@
+# proto-file: protocol/win32_resource.proto
+# proto-message: Win32Resource
+
+# default_language: JA_JP
+
+version_info {
+  # file_type: DLL
+  version_strings: {
+    # language: JA_JP
+    company_name {
+      value: "Google Inc."
+    }
+    file_description {
+      brand_name: "Google Japanese Input"
+      value: "Google 日本語入力 ブローカー"
+    }
+    file_description {
+      brand_name: "Mozc"
+      value: "Mozc Broker"
+    }
+    internal_name {
+      brand_name: "Google Japanese Input"
+      value: "GoogleIMEJaBroker"
+    }
+    internal_name {
+      brand_name: "Mozc"
+      value: "Mozc Broker"
+    }
+  }
+}

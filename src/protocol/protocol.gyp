@@ -264,5 +264,32 @@
         'genproto_engine_builder_proto#host',
       ],
     },
+    {
+      'target_name': 'genproto_win32_resource_proto',
+      'type': 'none',
+      'toolsets': ['host'],
+      'sources': [
+        'win32_resource.proto',
+      ],
+      'includes': [
+        '../protobuf/genproto.gypi',
+      ],
+    },
+    {
+      'target_name': 'win32_resource_proto',
+      'type': 'static_library',
+      'toolsets': ['target', 'host'],
+      'hard_dependency': 1,
+      'sources': [
+        '<(proto_out_dir)/<(relative_dir)/win32_resource.pb.cc',
+      ],
+      'dependencies': [
+        '<(mozc_oss_src_dir)/protobuf/protobuf.gyp:protobuf',
+        'genproto_win32_resource_proto#host',
+      ],
+      'export_dependent_settings': [
+        'genproto_win32_resource_proto#host',
+      ],
+    },
   ],
 }

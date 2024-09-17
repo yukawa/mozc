@@ -55,12 +55,11 @@
           'target_name': 'gen_mozc_broker_resource_header',
           'variables': {
             'gen_resource_proj_name': 'mozc_broker',
-            'gen_main_resource_path': 'win32/broker/mozc_broker.rc',
-            'gen_output_resource_path':
-                '<(gen_out_dir)/mozc_broker_autogen.rc',
+            'gen_main_resource_path': 'mozc_broker.rc.txtpb',
+            'gen_output_resource_path': 'mozc_broker_autogen.rc',
           },
           'includes': [
-            '../../gyp/gen_win32_resource_header.gypi',
+            '../../gyp/gen_win32_resource.gypi',
           ],
         },
         {
@@ -69,14 +68,15 @@
           'type': 'executable',
           'sources': [
             'mozc_broker_main.cc',
+            '<(gen_out_dir)/mozc_broker_autogen.rc',
           ],
           'dependencies': [
             '<(mozc_oss_src_dir)/base/base.gyp:base',
+            ':gen_mozc_broker_resource_header#host',
           ],
           'conditions': [
             ['OS=="win"', {
               'sources': [
-                'mozc_broker.rc',
                 'prelauncher.cc',
               ],
               'dependencies': [

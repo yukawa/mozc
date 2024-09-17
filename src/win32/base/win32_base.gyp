@@ -228,6 +228,20 @@
             'test_size': 'small',
           },
         },
+        {
+          'target_name': 'gen_win32_resource_main',
+          'type': 'executable',
+          'toolsets': ['host'],
+          'sources': [
+            'gen_win32_resource_main.cc',
+          ],
+          'dependencies': [
+            '<(mozc_oss_src_dir)/base/absl.gyp:absl_strings',
+            '<(mozc_oss_src_dir)/base/base.gyp:base',
+            '<(mozc_oss_src_dir)/base/base.gyp:version',
+            '<(mozc_oss_src_dir)/protocol/protocol.gyp:win32_resource_proto',
+          ],
+        },
       ],
     }],
   ],
