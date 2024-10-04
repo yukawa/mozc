@@ -36,7 +36,6 @@ import pathlib
 import subprocess
 
 from build_tools import mozc_version
-from build_tools import vs_util
 
 
 def exec_command(args: list[str], cwd: str) -> None:
@@ -76,10 +75,7 @@ def run_wix4(args) -> None:
   Args:
     args: args
   """
-  vs_env_vars = vs_util.get_vs_env_vars('x64')
-  redist_root = pathlib.Path(vs_env_vars['VCTOOLSREDISTDIR']).resolve()
-  redist_x86 = redist_root.joinpath('x86').joinpath('Microsoft.VC143.CRT')
-  redist_x64 = redist_root.joinpath('x64').joinpath('Microsoft.VC143.CRT')
+  redist_x64 = pathlib.Path(args.msvcp140_dll).parent.parent.resolve()
   version_file = pathlib.Path(args.version_file).resolve()
   version = mozc_version.MozcVersion(version_file)
   credit_file = pathlib.Path(args.credit_file).resolve()
@@ -126,7 +122,6 @@ def run_wix4(args) -> None:
       '-define', f'OmahaClientStateKey={omaha_clientstate_key}',
       '-define', f'OmahaChannelType={omaha_channel_type}',
       '-define', f'VSConfigurationName={vs_configuration_name}',
-      '-define', f'ReleaseRedistCrt32Dir={redist_x86}',
       '-define', f'ReleaseRedistCrt64Dir={redist_x64}',
       '-define', f'AddRemoveProgramIconPath={icon_path}',
       '-define', f'MozcTIP32Path={mozc_tip32}',
@@ -161,6 +156,7 @@ def main():
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)
   parser.add_argument('--qt_core_dll', type=str)
+  parser.add_argument('--msvcp140_dll', type=str)
   parser.add_argument('--wxs_path', type=str)
   parser.add_argument('--wix_path', type=str)
   parser.add_argument('--branding', type=str)

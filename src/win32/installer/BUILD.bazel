@@ -112,7 +112,6 @@ mozc_py_binary(
     test_lib = False,
     deps = [
         "//build_tools:mozc_version_lib",
-        "//build_tools:vs_util",
     ],
 )
 
@@ -150,6 +149,7 @@ genrule(
         "//data/installer:credits_en.html",
         "@qt_win//:bin/Qt6Core.dll",
         "@wix//:wix.exe",
+        "@vc_redist//:x64/Microsoft.VC143.CRT/msvcp140.dll"
     ],
     outs = [_MSI_FILE],
     cmd = " ".join([
@@ -167,6 +167,7 @@ genrule(
         "--icon_path=$(location //data/images/win:product_icon.ico)",
         "--credit_file=$(location //data/installer:credits_en.html)",
         "--qt_core_dll=$(location @qt_win//:bin/Qt6Core.dll)",
+        "--msvcp140_dll=$(location @vc_redist//:x64/Microsoft.VC143.CRT/msvcp140.dll)",
         "--wxs_path=$(location " + _WXS_FILE + ")",
         "--wix_path=$(location @wix//:wix.exe)",
         "--branding=" + BRANDING,

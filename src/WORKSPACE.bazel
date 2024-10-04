@@ -216,6 +216,12 @@ new_local_repository(
     path = "third_party/qt",
 )
 
+# Visual C++ runtime redistribution files
+load("@//bazel:vc_redist_repository.bzl", "vc_redist_repository")
+vc_redist_repository(
+    name = "windows_sdk"
+)
+
 # Windows SDK
 load("@//bazel:windows_sdk_repository.bzl", "windows_sdk_repository")
 windows_sdk_repository(
