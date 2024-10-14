@@ -50,6 +50,8 @@ mozc_cc_binary(
     target_compatible_with = ["@platforms//os:windows"],
     visibility = ["//win32/installer:__subpackages__"],  # Scheuklappen: keep
     win_def_file = "mozc_tip.def",
+    linkopts = ["/DEBUG:FULL", "/PDBALTPATH:%_PDB%"],
+    features = ["generate_pdb_file"],
     deps = [
         ":mozc_tip_resource",
         ":tip_class_factory",

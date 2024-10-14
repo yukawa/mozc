@@ -53,23 +53,33 @@ _win_executable_transition = transition(
 )
 
 def _mozc_win_build_rule_impl(ctx):
-    input_file = ctx.file.target
-    output = ctx.actions.declare_file(
-        ctx.label.name + "." + input_file.extension,
-    )
+    files = []
+    if ctx.file.target:
+        files.append(ctx.file.target)
+    for f in ctx.files.pdb:
+        if f.extension == "pdb":
+            files.append(f)
+            break
+
+    input_file = files[0]
+    output_name = ctx.label.name
+    if not output_name.endswith("." + input_file.extension):
+        output_name += "." + input_file.extension
+    output = ctx.actions.declare_file(output_name)
     if input_file.path == output.path:
-        fail("input=%d and output=%d are the same." % (input_file.path, output.path))
+        fail("input=%s and output=%s are the same." % (input_file.path, output.path))
 
     # Create a symlink as we do not need to create an actual copy.
     ctx.actions.symlink(
         output = output,
         target_file = input_file,
-        is_executable = True,
+        is_executable = input_file.extension == "exe",
     )
     return [DefaultInfo(
         files = depset([output]),
-        executable = output,
+        executable = output if input_file.extension == "exe" else None,
     )]
+
 
 # The follwoing CPU values are mentioned in https://bazel.build/configure/windows#build_cpp
 CPU = struct(
@@ -88,7 +98,11 @@ _mozc_win_build_rule = rule(
         "target": attr.label(
             allow_single_file = [".dll", ".exe"],
             doc = "the actual Bazel target to be built.",
-            mandatory = True,
+            mandatory = False,
+        ),
+        "pdb": attr.label(
+            allow_files = [".pdb"],
+            mandatory = False,
         ),
         "static_crt": attr.bool(),
         "cpu": attr.string(),
@@ -114,6 +128,7 @@ def mozc_win_build_target(
         target,
         cpu = CPU.X64,
         static_crt = False,
+        pdb_name = None,
         target_compatible_with = [],
         tags = [],
         **kwargs):
@@ -134,6 +149,7 @@ def mozc_win_build_target(
       target: the actual Bazel target to be built with the specified configurations.
       cpu: CPU type of the target.
       static_crt: True if the target should be built with static CRT.
+      pdb_name: optional target that is to be defined for pdb file.
       target_compatible_with: optional. Visibility for the unit test target.
       tags: optional. Tags for both the library and unit test targets.
       **kwargs: other arguments passed to mozc_objc_library.
@@ -159,3 +175,19 @@ def mozc_win_build_target(
         tags = tags,
         **kwargs
     )
+
+    if pdb_name:
+        native.filegroup(
+            name = name + "_pdb_file",
+            srcs = [target],
+            output_group = "pdb_file",
+        )
+        _mozc_win_build_rule(
+            name = pdb_name,
+            pdb = name + "_pdb_file",
+            cpu = cpu,
+            static_crt = static_crt,
+            target_compatible_with = target_compatible_with,
+            tags = tags,
+            **kwargs
+        )
