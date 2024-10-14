@@ -29,6 +29,7 @@
 
 # Mozc TIP (Text Input Processor) for Windows Text Services Framework.
 
+load("//:config.bzl", "BRANDING")
 load(
     "//:build_defs.bzl",
     "MOZC_TAGS",
@@ -42,33 +43,60 @@ load(
     "features_gdi",
 )
 
+_MOZC_TIP_DEPS = [
+    ":mozc_tip_resource",
+    ":tip_class_factory",
+    ":tip_dll_module",
+    ":tip_private_context",
+    ":tip_text_service",
+    ":tip_text_service_impl",
+    ":tip_ui_handler",
+    ":tip_ui_handler_impl",
+    "//base:crash_report_handler",
+    "//base/protobuf",
+    "//base/protobuf:message",
+    "//base/win32:com_implements",
+    "//config:stats_config_util",
+    "//win32/base:tsf_profile",
+    "@com_google_absl//absl/base",
+]
+
+_MOZC_TIP32_FILENAME = "mozc_tip32.dll" if BRANDING == "Mozc" else "GoogleIMEJaTIP32.dll"
+
+_MOZC_TIP64_FILENAME = "mozc_tip64.dll" if BRANDING == "Mozc" else "GoogleIMEJaTIP64.dll"
+
 mozc_cc_binary(
-    name = "mozc_tip",
+    name = _MOZC_TIP32_FILENAME,
     srcs = ["mozc_tip_main.cc"],
     linkshared = True,
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
-    visibility = ["//win32/installer:__subpackages__"],  # Scheuklappen: keep
     win_def_file = "mozc_tip.def",
-    linkopts = ["/DEBUG:FULL", "/PDBALTPATH:%_PDB%"],
+    deps = _MOZC_TIP_DEPS,
+)
+
+mozc_cc_binary(
+    name = _MOZC_TIP64_FILENAME,
+    srcs = ["mozc_tip_main.cc"],
+    linkshared = True,
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    win_def_file = "mozc_tip.def",
+    linkopts = ["/DEBUG:FULL", "/PDBALTPATH:" + _MOZC_TIP64_FILENAME + ".pdb"],
     features = ["generate_pdb_file"],
-    deps = [
-        ":mozc_tip_resource",
-        ":tip_class_factory",
-        ":tip_dll_module",
-        ":tip_private_context",
-        ":tip_text_service",
-        ":tip_text_service_impl",
-        ":tip_ui_handler",
-        ":tip_ui_handler_impl",
-        "//base:crash_report_handler",
-        "//base/protobuf",
-        "//base/protobuf:message",
-        "//base/win32:com_implements",
-        "//config:stats_config_util",
-        "//win32/base:tsf_profile",
-        "@com_google_absl//absl/base",
-    ],
+    deps = _MOZC_TIP_DEPS,
+)
+
+alias(
+    name = "mozc_tip32_alias",
+    actual = _MOZC_TIP32_FILENAME,
+    visibility = ["//win32/installer:__subpackages__"],  # Scheuklappen: keep
+)
+
+alias(
+    name = "mozc_tip64_alias",
+    actual = _MOZC_TIP64_FILENAME,
+    visibility = ["//win32/installer:__subpackages__"],  # Scheuklappen: keep
 )
 
 mozc_win32_resource_from_template(
