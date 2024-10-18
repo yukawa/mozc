@@ -341,9 +341,9 @@ void SystemUtil::SetUserProfileDirectory(const std::string &path) {
 #ifdef _WIN32
 namespace {
 // TODO(yukawa): Use API wrapper so that unit test can emulate any case.
-class ProgramFilesX86Cache {
+class ProgramFilesCache {
  public:
-  ProgramFilesX86Cache() : result_(E_FAIL) {
+  ProgramFilesCache() : result_(E_FAIL) {
     result_ = SafeTryProgramFilesPath(&path_);
   }
   const bool succeeded() const { return SUCCEEDED(result_); }
@@ -353,7 +353,7 @@ class ProgramFilesX86Cache {
  private:
   // b/5707813 implies that the Shell API causes an exception in some cases.
   // In order to avoid potential infinite loops in call_once. the constructor
-  // of ProgramFilesX86Cache must be exception free.
+  // of ProgramFilesCache must be exception free.
   // Note that __try and __except does not guarantees that any destruction
   // of internal C++ objects when a non-C++ exception occurs except that
   // /EHa compiler option is specified.
@@ -376,24 +376,9 @@ class ProgramFilesX86Cache {
     path->clear();
 
     wchar_t program_files_path_buffer[MAX_PATH] = {};
-#if defined(_M_X64)
-    // In 64-bit processes (such as Text Input Prosessor DLL for 64-bit apps),
-    // CSIDL_PROGRAM_FILES points 64-bit Program Files directory. In this case,
-    // we should use CSIDL_PROGRAM_FILESX86 to find server, renderer, and other
-    // binaries' path.
-    const HRESULT result =
-        ::SHGetFolderPathW(nullptr, CSIDL_PROGRAM_FILESX86, nullptr,
-                           SHGFP_TYPE_CURRENT, program_files_path_buffer);
-#elif defined(_M_IX86)
-    // In 32-bit processes (such as server, renderer, and other binaries),
-    // CSIDL_PROGRAM_FILES always points 32-bit Program Files directory
-    // even if they are running in 64-bit Windows.
     const HRESULT result =
         ::SHGetFolderPathW(nullptr, CSIDL_PROGRAM_FILES, nullptr,
                            SHGFP_TYPE_CURRENT, program_files_path_buffer);
-#else  // !_M_X64 && !_M_IX86
-#error "Unsupported CPU architecture"
-#endif  // _M_X64, _M_IX86, and others
     if (FAILED(result)) {
       return result;
     }
@@ -451,14 +436,14 @@ std::string SystemUtil::GetServerDirectory() {
   if (!install_dir_from_registry.empty()) {
     return install_dir_from_registry;
   }
-  DCHECK(SUCCEEDED(Singleton<ProgramFilesX86Cache>::get()->result()));
+  DCHECK(SUCCEEDED(Singleton<ProgramFilesCache>::get()->result()));
 #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
   return FileUtil::JoinPath(
-      FileUtil::JoinPath(Singleton<ProgramFilesX86Cache>::get()->path(),
+      FileUtil::JoinPath(Singleton<ProgramFilesCache>::get()->path(),
                          kCompanyNameInEnglish),
       kProductNameInEnglish);
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
-  return FileUtil::JoinPath(Singleton<ProgramFilesX86Cache>::get()->path(),
+  return FileUtil::JoinPath(Singleton<ProgramFilesCache>::get()->path(),
                             kProductNameInEnglish);
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 #endif  // _WIN32
@@ -761,7 +746,7 @@ bool SystemUtil::EnsureVitalImmutableDataIsAvailable() {
   if (!Singleton<SystemDirectoryCache>::get()->succeeded()) {
     return false;
   }
-  if (!Singleton<ProgramFilesX86Cache>::get()->succeeded()) {
+  if (!Singleton<ProgramFilesCache>::get()->succeeded()) {
     return false;
   }
   if (!Singleton<LocalAppDataDirectoryCache>::get()->succeeded()) {

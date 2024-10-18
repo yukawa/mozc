@@ -114,7 +114,7 @@ class SystemUtil {
   // this situation.  This function simply returns false instead of making
   // the process crash if any of following functions cannot work as expected.
   // - SystemDirectoryCache
-  // - ProgramFilesX86Cache
+  // - ProgramFilesCache
   // - LocalAppDataDirectoryCache
   // TODO(taku,yukawa): Implement more robust and reliable mechanism against
   //   sandboxed environment, where such kind of fundamental APIs are far more

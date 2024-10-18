@@ -89,6 +89,8 @@
       <ComponentRef Id="MozcTIP32" />
       <ComponentRef Id="MozcTIP64" />
       <ComponentRef Id="MozcTIP64Pdb" />
+      <ComponentRef Id="MozcTIP32_x86" />
+      <ComponentRef Id="MozcTIP64_x86" />
       <ComponentRef Id="MozcBroker" />
       <ComponentRef Id="MozcConverter" />
       <ComponentRef Id="MozcCacheService" />
@@ -150,7 +152,7 @@
         are currenly running. So the ShutdownServer action
         needs to be callled before the InstallValidate action.
       -->
-      <Custom Action="ShutdownServer" Before="InstallValidate" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)" />
+      <Custom Action="ShutdownServer" Before="InstallValidate" />
       <Custom Action="NewerVersionError" After="FindRelatedProducts" Condition="NEWERVERSIONDETECTED" />
       <!--
         RemoveExistingProducts needs to be scheduled between InstallExecute and
@@ -183,7 +185,7 @@
       <?endif?>
     </InstallExecuteSequence>
 
-    <StandardDirectory Id="ProgramFilesFolder">
+    <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="MozcDir" Name="Mozc">
         <Component Id="MozcConverter">
           <File Id="mozc_server.exe" Name="mozc_server.exe" DiskId="1" Checksum="yes" Source="$(var.MozcServer64Path)" Vital="yes" />
@@ -303,6 +305,17 @@
             </Component>
           <?endif?>
         </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Name="Mozc">
+        <Component Id="MozcTIP32_x86" Permanent="no" Bitness="always32">
+          <File Id="_mozc_tip32.dll" Name="mozc_tip32.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP32Path)" Vital="yes" />
+        </Component>
+        <Component Id="MozcTIP64_x86" Permanent="no" Bitness="always64">
+          <File Id="_mozc_tip64.dll" Name="mozc_tip64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP64Path)" Vital="yes" />
+        </Component>
       </Directory>
     </StandardDirectory>
 

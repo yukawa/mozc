@@ -105,6 +105,8 @@
       <ComponentRef Id="GIMEJaTIP32" />
       <ComponentRef Id="GIMEJaTIP64" />
       <ComponentRef Id="GIMEJaTIP64Pdb" />
+      <ComponentRef Id="GIMEJaTIP32_x86" />
+      <ComponentRef Id="GIMEJaTIP64_x86" />
       <ComponentRef Id="GIMEJaBroker" />
       <ComponentRef Id="GIMEJaConverter" />
       <ComponentRef Id="GIMEJaCacheService" />
@@ -174,7 +176,7 @@
         are currenly running. So the ShutdownServer action
         needs to be callled before the InstallValidate action.
       -->
-      <Custom Action="ShutdownServer" Before="InstallValidate" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)" />
+      <Custom Action="ShutdownServer" Before="InstallValidate" Condition="(REMOVE=&quot;ALL&quot;) OR UPGRADINGPRODUCTCODE" />
       <Custom Action="NewerVersionError" After="FindRelatedProducts" Condition="NEWERVERSIONDETECTED" />
       <!--
         RemoveExistingProducts needs to be scheduled between InstallExecute and
@@ -207,7 +209,7 @@
       <?endif?>
     </InstallExecuteSequence>
 
-    <StandardDirectory Id="ProgramFilesFolder">
+    <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="GoogleDir" Name="Google">
         <Directory Id="GIMEJaDir" Name="Google Japanese Input">
           <Component Id="GIMEJaConverter">
@@ -329,6 +331,18 @@
             <?endif?>
           </Directory>
         </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="GoogleDir" Name="Google">
+        <Directory Id="GIMEJaDir" Name="Google Japanese Input">
+          <Component Id="GIMEJaTIP32_x86" Permanent="no" Bitness="always32">
+            <File Id="_GoogleIMEJaTIP32.dll" Name="GoogleIMEJaTIP32.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP32Path)" Vital="yes" />
+          </Component>
+          <Component Id="GIMEJaTIP64_x86" Permanent="no" Bitness="always64">
+            <File Id="_GoogleIMEJaTIP64.dll" Name="GoogleIMEJaTIP64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP64Path)" Vital="yes" />
+          </Component>
       </Directory>
     </StandardDirectory>
 
