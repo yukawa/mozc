@@ -43,6 +43,23 @@ jobs:
           path: src/bazel-bin/unix/mozc.zip
           if-no-files-found: warn
 
+  buildifier:
+    # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'false'
+
+      - name: Run
+        working-directory: ./src
+        run: |
+          go install github.com/bazelbuild/buildtools/buildifier@latest
+          $(go env GOPATH)/bin/buildifier --mode=diff -r .
+
   test:
     # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
     runs-on: ubuntu-24.04
