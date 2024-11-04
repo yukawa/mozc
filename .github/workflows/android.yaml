@@ -29,6 +29,8 @@ jobs:
 
       - name: build
         working-directory: ./src
+        env:
+          USE_BAZEL_VERSION: "8.0.0rc2"
         run: |
           bazel build --config oss_android package --config release_build
 
