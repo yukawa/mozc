@@ -161,12 +161,38 @@ _win32_res_rule = rule(
 )
 
 def windows_resource(name, **kwargs):
+
+    # Put {name} in the prefix to avoid name conflict.
+    name_prefix = name + "_cpu_"
+
+    # Query "cpu" command line option as Windows builds are not yet migrated to
+    # platform concept.
+    # See https://github.com/google/mozc/issues/... for details.
+
+    native.config_setting(
+        name = name_prefix + "arm64_windows",
+        values = {"cpu": "arm64_windows"},
+        visibility = ["//visibility:private"],
+    )
+
+    native.config_setting(
+        name = name_prefix + "x64_windows",
+        values = {"cpu": "x64_windows"},
+        visibility = ["//visibility:private"],
+    )
+
+    native.config_setting(
+        name = name_prefix + "x86_windows",
+        values = {"cpu": "x64_32_windows"},
+        visibility = ["//visibility:private"],
+    )
+
     _win32_res_rule(
         name = name,
         arch_defines = select({
-            "@platforms//cpu:arm64": ["_ARM64_", "_WIN64"],
-            "@platforms//cpu:x86_64": ["_AMD64_", "_WIN64"],
-            "@platforms//cpu:x86_32": ["_X86_"],
+            ":" + name_prefix + "arm64_windows": ["_ARM64_", "_WIN64"],
+            ":" + name_prefix + "x64_windows": ["_AMD64_", "_WIN64"],
+            ":" + name_prefix + "x86_windows": ["_X86_"],
             "//conditions:default": [""],
         }),
         **kwargs
