@@ -43,6 +43,7 @@ import multiprocessing
 import optparse
 import os
 import pathlib
+import platform
 import re
 import subprocess
 import sys
@@ -349,29 +350,64 @@ def ParseCleanOptions(args):
   return parser.parse_args(args)
 
 
-def UpdateEnvironmentFilesForWindows(out_dir):
+def ReadEnvironmentFile(path):
+  nul = chr(0)
+  with open(path, 'rb') as f:
+    content = f.read()
+  entries = content.decode('utf-8').split(nul)
+  env = dict()
+  for e in entries:
+    if '=' in e:
+      key, value = e.split('=', 1)
+      env[key] = value
+  return env
+
+
+def WriteEnvironmentFile(path, env):
+  nul = chr(0)
+  entries = [f'{key}={value}' for (key, value) in env.items()]
+  entries.extend(['', ''])
+  with open(path, 'wb') as f:
+    f.write(nul.join(entries).encode('utf-8'))
+
+
+def UpdateEnvironmentFilesForWindows(out_dir, vcvarsall_path):
   """Add required environment variables for Ninja build."""
   python_path_root = MOZC_ROOT
   python_path = os.path.abspath(python_path_root)
   original_python_paths = os.environ.get('PYTHONPATH', '')
   if original_python_paths:
     python_path = os.pathsep.join([original_python_paths, python_path])
-  nul = chr(0)
-  additional_content = nul.join([
-      'PYTHONPATH=' + python_path,
-      'VSLANG=1033',  # 1033 == MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US)
-      nul]).encode('utf-8')
+
   for d in os.listdir(out_dir):
     abs_dir = os.path.abspath(os.path.join(out_dir, d))
-    with open(os.path.join(abs_dir, 'environment.x86'), 'rb') as x86_file:
-      x86_content = x86_file.read()[:-1] + additional_content
-    with open(os.path.join(abs_dir, 'environment.x86'), 'wb') as x86_file:
-      x86_file.write(x86_content)
-    with open(os.path.join(abs_dir, 'environment.x64'), 'rb') as x64_file:
-      x64_content = x64_file.read()[:-1] + additional_content
-    with open(os.path.join(abs_dir, 'environment.x64'), 'wb') as x64_file:
-      x64_file.write(x64_content)
+    # Tweak generated build rules for ARM64
+    if d.endswith('arm64'):
+      build_ninja = os.path.join(abs_dir, 'build.ninja')
+      with open(build_ninja, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+        for i in range(0, 2):
+          lines[i] = lines[i].replace('x64\\cl.exe', 'arm64\\cl.exe')
+          lines[i] = lines[i].replace('x86\\cl.exe', 'arm64\\cl.exe')
+      with open(build_ninja, 'w', encoding='utf-8') as f:
+        f.writelines(lines)
 
+    for arch in ['x86', 'x64']:
+      env_file = os.path.join(abs_dir, f'environment.{arch}')
+      env = ReadEnvironmentFile(env_file)
+      # Tweak for ARM64
+      if d.endswith('arm64'):
+        vs_arch = platform.uname().machine
+        if vs_arch != 'arm64':
+          vs_arch = vs_arch + '_arm64'
+        vs_env = get_vs_env_vars(vs_arch)
+        env['INCLUDE'] = vs_env['INCLUDE']
+        env['LIB'] = vs_env['LIB']
+        env['LIBPATH'] = vs_env['LIBPATH']
+        env['PATH'] = vs_env['PATH']
+      env['PYTHONPATH'] = python_path
+      env['VSLANG'] = '1033' # == MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US)
+      WriteEnvironmentFile(env_file, env)
 
 
 def GypMain(options, unused_args):
@@ -548,7 +584,7 @@ def GypMain(options, unused_args):
   # For internal Ninja build on Windows, set up environment files
   if IsWindows():
     out_dir = os.path.join(MOZC_ROOT, 'out_win')
-    UpdateEnvironmentFilesForWindows(out_dir)
+    UpdateEnvironmentFilesForWindows(out_dir, options.vcvarsall_path)
 
   if IsWindows() and qt_dir and qt_ver:
     # When Windows build is configured to use DLL version of Qt, copy Qt's DLLs
