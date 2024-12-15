@@ -1,0 +1,3 @@
+EXPORTS
+        DllGetClassObject  =  GoogleImeJaTIP_arm64.DllGetClassObject
+        DllCanUnloadNow  =  GoogleImeJaTIP_arm64.DllCanUnloadNow

@@ -1,0 +1,63 @@
+// Microsoft Visual C++ generated resource script.
+//
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Japanese resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+#if defined(GOOGLE_JAPANESE_INPUT_BUILD)
+    #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaTIPShim_arm64"
+#elif defined(MOZC_BUILD)
+    #define MOZC_RES_INTERNAL_NAME "mozc_tip_shim_arm64"
+#endif
+#if defined(GOOGLE_JAPANESE_INPUT_BUILD)
+    #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaTIPShim_arm64.dll"
+#elif defined(MOZC_BUILD)
+    #define MOZC_RES_ORIGINAL_FILENAME "mozc_tip_shim_arm64.dll"
+#endif
+#if defined(GOOGLE_JAPANESE_INPUT_BUILD)
+#define MOZC_RES_FILE_DESCRIPTION "Google 日本語入力 TIP フォワーダー (ARM64X)"
+#elif defined(MOZC_BUILD)
+#define MOZC_RES_FILE_DESCRIPTION "Mozc TIP Forwarder (ARM64X)"
+#endif
+#ifndef MOZC_RES_FILETYPE
+  #define MOZC_RES_FILETYPE VFT_DLL
+#endif
+
+#ifdef MOZC_RES_USE_TEMPLATE
+  #include "build_tools/mozc_win32_resource_template.rc"
+#endif    // MOZC_RES_USE_TEMPLATE
+
+#endif    // Japanese resources
+/////////////////////////////////////////////////////////////////////////////
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED

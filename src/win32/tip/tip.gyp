@@ -176,6 +176,88 @@
             },
           },
         },
+        {
+          'target_name': 'gen_mozc_tip_shim_arm64_header',
+          'variables': {
+            'gen_resource_proj_name': 'mozc_tip_shim_arm64',
+            'gen_main_resource_path': 'win32/tip/mozc_tip_shim_arm64.rc',
+            'gen_output_resource_path':
+                '<(gen_out_dir)/mozc_tip_shim_arm64.rc',
+          },
+          'includes': [
+            '../../gyp/gen_win32_resource_header.gypi',
+          ],
+        },
+        {
+          'target_name': 'mozc_tip_forwarder_arm64',
+          'type': 'static_library',
+          'hard_dependency': 1,
+          'sources': [
+            'empty.cc',
+            'mozc_tip_forwarder_arm64.oss.def',
+          ],
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [
+                '/bigobj',
+              ],
+            },
+            'VCLinkerTool': {
+              'ImageHasSafeExceptionHandlers': 'false',
+              'AdditionalOptions': [
+                '/MACHINE:ARM64',
+              ],
+            },
+          },
+        },
+        {
+          'target_name': 'mozc_tip_forwarder_arm64ec',
+          'type': 'static_library',
+          'hard_dependency': 1,
+          'sources': [
+            'empty.cc',
+            'mozc_tip_forwarder_x64.oss.def',
+          ],
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [
+                '/bigobj',
+              ],
+            },
+            'VCLinkerTool': {
+              'ImageHasSafeExceptionHandlers': 'false',
+              'AdditionalOptions': [
+                '/MACHINE:ARM64EC',
+              ],
+            },
+          },
+        },
+        {
+          'target_name': 'mozc_tip_shim_arm64',
+          'product_name': 'mozc_tip_shim_arm64',
+          'product_extension': 'dll',
+          'type': 'shared_library',
+          'sources': [
+            '<(gen_out_dir)/mozc_tip_shim_arm64.rc',
+          ],
+          'dependencies': [
+            'gen_mozc_tip_shim_x64_header',
+            'mozc_tip_forwarder_arm64',
+          ],
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [
+                '/bigobj',
+              ],
+            },
+            'VCLinkerTool': {
+              'ImageHasSafeExceptionHandlers': 'false',
+              'AdditionalOptions': [
+                '/MACHINE:ARM64',
+              ],
+            },
+          },
+        },
       ],
     }],
   ],

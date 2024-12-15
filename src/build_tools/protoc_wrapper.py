@@ -85,6 +85,8 @@ def main():
   protoc_path = opts.protoc_command
   if opts.protoc_dir:
     protoc_path = os.path.join(os.path.abspath(opts.protoc_dir), protoc_path)
+    if os.name == 'nt' and protoc_path.endswith('_arm64\\protoc.exe'):
+      protoc_path = protoc_path.replace('_arm64\\protoc', '_x64\\protoc')
 
   # The path of proto file should be transformed as a relative path from
   # the project root so that correct relative paths should be embedded into

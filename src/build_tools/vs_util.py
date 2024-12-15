@@ -91,7 +91,10 @@ def get_vcvarsall(
     'Microsoft.VisualStudio.Component.VC.Redist.14.Latest',
   ]
   if arch.endswith('arm64'):
-    cmd += ['Microsoft.VisualStudio.Component.VC.Tools.ARM64']
+    cmd += [
+      'Microsoft.VisualStudio.Component.VC.ATL.ARM64',
+      'Microsoft.VisualStudio.Component.VC.Tools.ARM64',
+    ]
 
   process = subprocess.Popen(
       cmd,
@@ -115,8 +118,8 @@ def get_vcvarsall(
     msg = 'Could not find vcvarsall.bat.'
     if arch.endswith('arm64'):
       msg += (
-        ' Make sure Microsoft.VisualStudio.Component.VC.Tools.ARM64 is'
-        ' installed.'
+        ' Make sure Microsoft.VisualStudio.Component.VC.Tools.ARM64 and'
+        ' Microsoft.VisualStudio.Component.VC.ATL.ARM64 are installed.'
       )
     else:
       msg += (

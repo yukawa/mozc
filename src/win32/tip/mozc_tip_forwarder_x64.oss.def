@@ -1,0 +1,3 @@
+EXPORTS
+        DllGetClassObject  =  mozc_tip_x64.DllGetClassObject
+        DllCanUnloadNow  =  mozc_tip_x64.DllCanUnloadNow
