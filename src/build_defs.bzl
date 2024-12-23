@@ -42,6 +42,7 @@ See also: https://bazel.build/rules/bzl-style#rules
 
 """
 
+load("@bazel_skylib//rules:select_file.bzl", "select_file")
 load("@build_bazel_rules_apple//apple:macos.bzl", "macos_application", "macos_bundle", "macos_unit_test")
 load("@windows_sdk//:windows_sdk_rules.bzl", "windows_resource")
 load(
@@ -207,9 +208,9 @@ register_extension_info(
 def _win_executable_transition_impl(
         settings,  # @unused
         attr):
-    features = []
+    features = ["generate_pdb_file"]
     if attr.static_crt:
-        features = ["static_link_msvcrt"]
+        features += ["static_link_msvcrt"]
     return {
         "//command_line_option:features": features,
         "//command_line_option:cpu": attr.cpu,
@@ -238,10 +239,15 @@ def _mozc_win_build_rule_impl(ctx):
         target_file = input_file,
         is_executable = True,
     )
-    return [DefaultInfo(
-        files = depset([output]),
-        executable = output,
-    )]
+    return [
+        DefaultInfo(
+            files = depset([output]),
+            executable = output,
+        ),
+        OutputGroupInfo(
+            pdb_file = depset(ctx.files.pdb_file),
+        ),
+    ]
 
 # The follwoing CPU values are mentioned in https://bazel.build/configure/windows#build_cpp
 CPU = struct(
@@ -260,6 +266,10 @@ _mozc_win_build_rule = rule(
         "target": attr.label(
             allow_single_file = [".dll", ".exe"],
             doc = "the actual Bazel target to be built.",
+            mandatory = True,
+        ),
+        "pdb_file": attr.label(
+            allow_files = True,
             mandatory = True,
         ),
         "static_crt": attr.bool(),
@@ -337,7 +347,6 @@ def mozc_win32_cc_prod_binary(
         executable_name_map = {},  # @unused
         srcs = [],
         deps = [],
-        features = None,
         linkopts = [],
         linkshared = False,
         cpu = CPU.X64,
@@ -361,7 +370,6 @@ def mozc_win32_cc_prod_binary(
       executable_name_map: a map from the branding name to the executable name.
       srcs: .cc files to build the executable.
       deps: deps to build the executable.
-      features: features to be passed to mozc_cc_binary.
       linkopts: linker options to build the executable.
       linkshared: True if the target is a shared library (DLL).
       cpu: optional. The target CPU architecture.
@@ -372,31 +380,148 @@ def mozc_win32_cc_prod_binary(
       visibility: optional. The visibility of the target.
       **kwargs: other arguments passed to mozc_cc_binary.
     """
-    target_name = name + "_cc_binary"
+    mandatory_target_compatible_with = [
+        "@platforms//os:windows",
+    ]
+    for item in mandatory_target_compatible_with:
+        if item not in target_compatible_with:
+            target_compatible_with.append(item)
+
+    mandatory_tags = MOZC_TAGS.WIN_ONLY
+    for item in mandatory_tags:
+        if item not in tags:
+            tags.append(item)
+
+    target_name = executable_name_map.get(BRANDING, None)
+    if target_name == None:
+        return
+
+    linkshared = False
+    intermediate_name = None
+    if target_name.endswith(".exe"):
+        # When the targete name is "foobar.exe", then "foobar.exe.dll" will be
+        # generated.
+        intermediate_name = target_name
+    elif target_name.endswith(".dll"):
+        # When the targete name is "foobar.dll", then "foobar.pdb" will be
+        # generated. To produce "foobar.dll.pdb", the target name needs to be
+        # something like "foobar.dll.dll".
+        intermediate_name = target_name + ".dll"
+        linkshared = True
+    else:
+        return
+
+    modified_linkopts = []
+    modified_linkopts.extend(linkopts)
+    modified_linkopts.extend([
+        "/DEBUG:FULL",
+        "/PDBALTPATH:%_PDB%",
+    ])
     mozc_cc_binary(
-        name = target_name,
+        name = intermediate_name,
         srcs = srcs,
         deps = deps,
-        features = features,
-        linkopts = linkopts,
+        linkopts = modified_linkopts,
         linkshared = linkshared,
         tags = tags,
         target_compatible_with = target_compatible_with,
-        visibility = visibility,
+        visibility = ["//visibility:private"],
         win_def_file = win_def_file,
         **kwargs
     )
 
-    mozc_win_build_target(
+    native.filegroup(
+        name = intermediate_name + "_pdb_file",
+        srcs = [intermediate_name],
+        output_group = "pdb_file",
+        visibility = ["//visibility:private"],
+    )
+
+    _mozc_win_build_rule(
         name = name,
         cpu = cpu,
+        pdb_file = intermediate_name + "_pdb_file",
         static_crt = static_crt,
         tags = tags,
-        target = target_name,
+        target = intermediate_name,
         target_compatible_with = target_compatible_with,
         visibility = visibility,
         **kwargs
     )
+
+    native.filegroup(
+        name = name + "_pdb_file",
+        srcs = [name],
+        output_group = "pdb_file",
+        visibility = ["//visibility:private"],
+    )
+
+    select_file(
+        name = name + ".pdb",
+        srcs = name + "_pdb_file",
+        subpath = target_name + ".pdb",
+        visibility = visibility,
+    )
+
+register_extension_info(
+    extension = mozc_win32_cc_prod_binary,
+    label_regex_for_dep = "{extension_name}",
+)
+
+def _win_library_transition_impl(
+        settings,  # @unused
+        attr):  # @unused
+    return {
+        "//command_line_option:features": [],
+    }
+
+def _mozc_win_library_transition_impl(ctx):
+    input_file = ctx.file.target
+    output = ctx.actions.declare_file(
+        ctx.label.name + "." + input_file.extension,
+    )
+    if input_file.path == output.path:
+        fail("input=%d and output=%d are the same." % (input_file.path, output.path))
+
+    # Create a symlink as we do not need to create an actual copy.
+    ctx.actions.symlink(
+        output = output,
+        target_file = input_file,
+        is_executable = True,
+    )
+    return [
+        DefaultInfo(
+            files = depset([output]),
+        ),
+        OutputGroupInfo(
+            interface_library = depset(ctx.files.interface_library),
+        ),
+    ]
+
+_mozc_cc_win32_library_rule = rule(
+    implementation = _mozc_win_library_transition_impl,
+    cfg = transition(
+        implementation = _win_library_transition_impl,
+        inputs = [],
+        outputs = [
+            "//command_line_option:features",
+        ],
+    ),
+    attrs = {
+        "_allowlist_function_transition": attr.label(
+            default = BAZEL_TOOLS_PREFIX + "//tools/allowlists/function_transition_allowlist",
+        ),
+        "target": attr.label(
+            allow_single_file = [".dll"],
+            doc = "the actual Bazel target to be built.",
+            mandatory = True,
+        ),
+        "interface_library": attr.label(
+            allow_files = [".lib"],
+            mandatory = True,
+        ),
+    },
+)
 
 def mozc_cc_win32_library(
         name,
@@ -422,17 +547,25 @@ def mozc_cc_win32_library(
       **kwargs: other args for cc_library.
     """
 
+    mandatory_target_compatible_with = [
+        "@platforms//os:windows",
+    ]
+    for item in mandatory_target_compatible_with:
+        if item not in target_compatible_with:
+            target_compatible_with.append(item)
+
     # A DLL name, which actually will not be used in production.
     # e.g. "input_dll_fake.dll" vs "C:\Windows\System32\input.dll"
     # The actual DLL name should be specified in the LIBRARY section of
     # win_def_file.
     # https://learn.microsoft.com/en-us/cpp/build/reference/library
-    cc_binary_target_name = name + "_fake.dll"
-    filegroup_target_name = name + "_lib"
+    cc_binary_target_intermediate_name = name + "_fake"
+    cc_binary_target_name = cc_binary_target_intermediate_name + ".dll"
+    filegroup_target_name = name + "_lib_group"
     cc_import_taget_name = name + "_import"
 
     mozc_cc_binary(
-        name = cc_binary_target_name,
+        name = cc_binary_target_intermediate_name,
         srcs = srcs,
         deps = deps,
         win_def_file = win_def_file,
@@ -441,6 +574,22 @@ def mozc_cc_win32_library(
         target_compatible_with = target_compatible_with,
         visibility = ["//visibility:private"],
         **kwargs
+    )
+
+    interface_library_name = filegroup_target_name + ".if.lib"
+    native.filegroup(
+        name = interface_library_name,
+        srcs = [":" + cc_binary_target_intermediate_name],
+        output_group = "interface_library",
+        tags = tags,
+        target_compatible_with = target_compatible_with,
+        visibility = ["//visibility:private"],
+    )
+
+    _mozc_cc_win32_library_rule(
+        name = cc_binary_target_name,
+        target = cc_binary_target_intermediate_name,
+        interface_library = interface_library_name,
     )
 
     native.filegroup(
