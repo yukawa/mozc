@@ -220,12 +220,12 @@ UINT __stdcall EnsureAllApplicationPackagesPermisssions(MSIHANDLE msi_handle) {
     return ERROR_INSTALL_FAILURE;
   }
   if (!mozc::WinSandbox::EnsureAllApplicationPackagesPermisssion(
-          GetMozcComponentPath(mozc::kMozcTIP32),
+          GetMozcComponentPath(mozc::kMozcTIPx86),
           mozc::WinSandbox::AppContainerVisibilityType::kProgramFiles)) {
     return ERROR_INSTALL_FAILURE;
   }
   if (!mozc::WinSandbox::EnsureAllApplicationPackagesPermisssion(
-          GetMozcComponentPath(mozc::kMozcTIP64),
+          GetMozcComponentPath(mozc::kMozcTIPx64),
           mozc::WinSandbox::AppContainerVisibilityType::kProgramFiles)) {
     return ERROR_INSTALL_FAILURE;
   }
@@ -450,9 +450,9 @@ UINT __stdcall RegisterTIP(MSIHANDLE msi_handle) {
   mozc::ScopedCOMInitializer com_initializer;
 
 #if defined(_M_X64)
-  const std::wstring &path = GetMozcComponentPath(mozc::kMozcTIP64);
+  const std::wstring &path = GetMozcComponentPath(mozc::kMozcTIPx64);
 #elif defined(_M_IX86)
-  const std::wstring &path = GetMozcComponentPath(mozc::kMozcTIP32);
+  const std::wstring &path = GetMozcComponentPath(mozc::kMozcTIPx86);
 #else  // _M_X64, _M_IX86
 #error "Unsupported CPU architecture"
 #endif  // _M_X64, _M_IX86, and others

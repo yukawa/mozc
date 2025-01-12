@@ -140,8 +140,8 @@
           ],
         },
         {
-          'target_name': 'mozc_tip32',
-          'product_name': '<(tipfile_product_name_win)32',
+          'target_name': 'mozc_tip_x86',
+          'product_name': '<(tipfile_product_name_win)_x86',
           'product_extension': 'dll',
           'type': 'shared_library',
           'sources': [
@@ -154,8 +154,8 @@
           ],
         },
         {
-          'target_name': 'mozc_tip64',
-          'product_name': '<(tipfile_product_name_win)64',
+          'target_name': 'mozc_tip_x64',
+          'product_name': '<(tipfile_product_name_win)_x64',
           'product_extension': 'dll',
           'type': 'shared_library',
           'sources': [
@@ -172,7 +172,7 @@
             },
             'VCLinkerTool': {
               # Generate stripped symbol.
-              'AdditionalOptions': ['/PDBSTRIPPED:<(tipfile_product_name_win)64.dll.stripped.pdb'],
+              'AdditionalOptions': ['/PDBSTRIPPED:<(tipfile_product_name_win)_x64.dll.stripped.pdb'],
             },
           },
         },
