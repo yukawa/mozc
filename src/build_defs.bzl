@@ -382,13 +382,33 @@ def mozc_win32_cc_prod_binary(
       visibility: optional. The visibility of the target.
       **kwargs: other arguments passed to mozc_cc_binary.
     """
+
+    # '/CETCOMPAT' is available only on x86/x64 architectures.
+    # https://github.com/google/mozc/issues/1113
+    cetcompat_opt = {
+        "@platforms//cpu:x86_32": ["/CETCOMPAT"],
+        "@platforms//cpu:x86_64": ["/CETCOMPAT"],
+    }.get(cpu, [])
+
+    LOAD_LIBRARY_SEARCH_APPLICATION_DIR = 0x200
+    LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x800
+
+    load_flags = LOAD_LIBRARY_SEARCH_SYSTEM32
+    if not linkshared:
+        # We build *.exe with dynamic CRT and deploy CRT DLLs into the
+        # application dir. Thus LOAD_LIBRARY_SEARCH_APPLICATION_DIR is also
+        # necessary.
+        load_flags += LOAD_LIBRARY_SEARCH_APPLICATION_DIR
+
+    dependent_load_flags_opt = ["/DEPENDENTLOADFLAG:0x%X" % load_flags]
+
     target_name = name + "_cc_binary"
     mozc_cc_binary(
         name = target_name,
         srcs = srcs,
         deps = deps,
         features = features,
-        linkopts = linkopts,
+        linkopts = linkopts + cetcompat_opt + dependent_load_flags_opt,
         linkshared = linkshared,
         tags = tags,
         target_compatible_with = target_compatible_with,
