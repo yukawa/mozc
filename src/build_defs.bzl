@@ -42,6 +42,7 @@ See also: https://bazel.build/rules/bzl-style#rules
 
 """
 
+load("@bazel_skylib//rules:select_file.bzl", "select_file")
 load("@build_bazel_rules_apple//apple:macos.bzl", "macos_application", "macos_bundle", "macos_unit_test")
 load("@windows_sdk//:windows_sdk_rules.bzl", "windows_resource")
 load(
@@ -207,9 +208,9 @@ register_extension_info(
 def _win_executable_transition_impl(
         settings,  # @unused
         attr):
-    features = []
+    features = ["generate_pdb_file"]
     if attr.static_crt:
-        features = ["static_link_msvcrt"]
+        features += ["static_link_msvcrt"]
     return {
         "//command_line_option:features": features,
         "//command_line_option:platforms": [attr.platform],
@@ -238,10 +239,15 @@ def _mozc_win_build_rule_impl(ctx):
         target_file = input_file,
         is_executable = True,
     )
-    return [DefaultInfo(
-        files = depset([output]),
-        executable = output,
-    )]
+    return [
+        DefaultInfo(
+            files = depset([output]),
+            executable = output,
+        ),
+        OutputGroupInfo(
+            pdb_file = depset(ctx.files.pdb_file),
+        ),
+    ]
 
 CPU = struct(
     ARM64 = "@platforms//cpu:arm64",  # aarch64 (64-bit) environment
@@ -261,86 +267,14 @@ _mozc_win_build_rule = rule(
             doc = "the actual Bazel target to be built.",
             mandatory = True,
         ),
+        "pdb_file": attr.label(
+            allow_files = True,
+            mandatory = True,
+        ),
         "static_crt": attr.bool(),
         "platform": attr.label(),
     },
 )
-
-# Define a transition target with the given build target with the given build configurations.
-#
-# For instance, the following code creates a target "my_target" with setting "cpu" as "x64_windows"
-# and setting "static_link_msvcrt" feature.
-#
-#   mozc_win_build_rule(
-#       name = "my_target",
-#       cpu = CPU.X64,
-#       static_crt = True,
-#       target = "//bath/to/target:my_target",
-#   )
-#
-# See the following page for the details on transition.
-# https://bazel.build/rules/lib/builtins/transition
-def mozc_win_build_target(
-        name,
-        target,
-        cpu = CPU.X64,
-        static_crt = False,
-        target_compatible_with = [],
-        tags = [],
-        **kwargs):
-    """Define a transition target with the given build target with the given build configurations.
-
-    The following code creates a target "my_target" with setting "cpu" as "x64_windows" and setting
-    "static_link_msvcrt" feature.
-
-      mozc_win_build_target(
-          name = "my_target",
-          cpu = CPU.X64,
-          static_crt = True,
-          target = "//bath/to/target:my_target",
-      )
-
-    Args:
-      name: name of the target.
-      target: the actual Bazel target to be built with the specified configurations.
-      cpu: CPU type of the target.
-      static_crt: True if the target should be built with static CRT.
-      target_compatible_with: optional. Visibility for the unit test target.
-      tags: optional. Tags for both the library and unit test targets.
-      **kwargs: other arguments passed to mozc_objc_library.
-    """
-    mandatory_target_compatible_with = [
-        cpu,
-        "@platforms//os:windows",
-    ]
-    for item in mandatory_target_compatible_with:
-        if item not in target_compatible_with:
-            target_compatible_with.append(item)
-
-    mandatory_tags = MOZC_TAGS.WIN_ONLY
-    for item in mandatory_tags:
-        if item not in tags:
-            tags.append(item)
-
-    platform_name = "_" + name + "_platform"
-    native.platform(
-        name = platform_name,
-        constraint_values = [
-            cpu,
-            "@platforms//os:windows",
-        ],
-        visibility = ["//visibility:private"],
-    )
-
-    _mozc_win_build_rule(
-        name = name,
-        target = target,
-        platform = platform_name,
-        static_crt = static_crt,
-        target_compatible_with = target_compatible_with,
-        tags = tags,
-        **kwargs
-    )
 
 def mozc_win32_cc_prod_binary(
         name,
@@ -382,30 +316,98 @@ def mozc_win32_cc_prod_binary(
       visibility: optional. The visibility of the target.
       **kwargs: other arguments passed to mozc_cc_binary.
     """
-    target_name = name + "_cc_binary"
+    target_name = executable_name_map.get(BRANDING, None)
+    if target_name == None:
+        return
+
+    intermediate_name = None
+    if target_name.endswith(".exe"):
+        # When the targete name is "foobar.exe", then "foobar.exe.dll" will be
+        # generated.
+        intermediate_name = target_name
+    elif target_name.endswith(".dll"):
+        # When the targete name is "foobar.dll", then "foobar.pdb" will be
+        # generated. To produce "foobar.dll.pdb", the target name needs to be
+        # something like "foobar.dll.dll".
+        intermediate_name = target_name + ".dll"
+        linkshared = True
+    else:
+        return
+
+    modified_linkopts = []
+    modified_linkopts.extend(linkopts)
+    modified_linkopts.extend([
+        "/DEBUG:FULL",
+        "/PDBALTPATH:%_PDB%",
+    ])
     mozc_cc_binary(
-        name = target_name,
+        name = intermediate_name,
         srcs = srcs,
         deps = deps,
         features = features,
-        linkopts = linkopts,
+        linkopts = modified_linkopts,
         linkshared = linkshared,
         tags = tags,
         target_compatible_with = target_compatible_with,
-        visibility = visibility,
+        visibility = ["//visibility:private"],
         win_def_file = win_def_file,
         **kwargs
     )
 
-    mozc_win_build_target(
+    mandatory_target_compatible_with = [
+        cpu,
+        "@platforms//os:windows",
+    ]
+    for item in mandatory_target_compatible_with:
+        if item not in target_compatible_with:
+            target_compatible_with.append(item)
+
+    mandatory_tags = MOZC_TAGS.WIN_ONLY
+    for item in mandatory_tags:
+        if item not in tags:
+            tags.append(item)
+
+    native.filegroup(
+        name = intermediate_name + "_pdb_file",
+        srcs = [intermediate_name],
+        output_group = "pdb_file",
+        visibility = ["//visibility:private"],
+    )
+
+    platform_name = "_" + name + "_platform"
+    native.platform(
+        name = platform_name,
+        constraint_values = [
+            cpu,
+            "@platforms//os:windows",
+        ],
+        visibility = ["//visibility:private"],
+    )
+
+    _mozc_win_build_rule(
         name = name,
-        cpu = cpu,
+        pdb_file = intermediate_name + "_pdb_file",
+        platform = platform_name,
         static_crt = static_crt,
         tags = tags,
-        target = target_name,
+        target = intermediate_name,
         target_compatible_with = target_compatible_with,
         visibility = visibility,
         **kwargs
+    )
+
+    native.filegroup(
+        name = name + "_pdb_file",
+        srcs = [name],
+        output_group = "pdb_file",
+        visibility = ["//visibility:private"],
+    )
+
+    select_file(
+        name = name + ".pdb",
+        srcs = name + "_pdb_file",
+        subpath = target_name + ".pdb",
+        visibility = visibility,
     )
 
 def mozc_cc_win32_library(
@@ -445,6 +447,7 @@ def mozc_cc_win32_library(
         name = cc_binary_target_name,
         srcs = srcs,
         deps = deps,
+        features = ["-generate_pdb_file"],
         win_def_file = win_def_file,
         linkshared = 1,
         tags = tags,
