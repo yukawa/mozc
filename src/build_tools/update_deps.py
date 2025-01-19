@@ -39,6 +39,7 @@ import dataclasses
 import hashlib
 import os
 import pathlib
+import shutil
 import stat
 import subprocess
 import sys
@@ -82,6 +83,24 @@ QT6 = ArchiveInfo(
     url='https://download.qt.io/archive/qt/6.8/6.8.0/submodules/qtbase-everywhere-src-6.8.0.tar.xz',
     size=49819628,
     sha256='1bad481710aa27f872de6c9f72651f89a6107f0077003d0ebfcc9fd15cba3c75',
+)
+
+NDK_LINUX = ArchiveInfo(
+    url='https://dl.google.com/android/repository/android-ndk-r27b-linux.zip',
+    size=663976775,
+    sha256='33e16af1a6bbabe12cad54b2117085c07eab7e4fa67cdd831805f0e94fd826c1',
+)
+
+NDK_MAC = ArchiveInfo(
+    url='https://dl.google.com/android/repository/android-ndk-r27b-darwin.zip',
+    size=836151734,
+    sha256='cf9b9eef50841f409f586e7ae12901007c7f545722612065bd63afbab1844152',
+)
+
+NDK_WINDOWS = ArchiveInfo(
+    url='https://dl.google.com/android/repository/android-ndk-r27b-windows.zip',
+    size=781495902,
+    sha256='6fa1fa6e95191eb374d389018b6bbdc9adb835f62f1d2b717001f65e0df8e351',
 )
 
 NINJA_MAC = ArchiveInfo(
@@ -255,6 +274,41 @@ def extract_ninja(dryrun: bool = False) -> None:
     ninja.chmod(ninja.stat().st_mode | stat.S_IXUSR)
 
 
+def extract_ndk(archive: ArchiveInfo, dryrun: bool = False) -> None:
+  """Extract Android NDK archive.
+
+  Args:
+    archive: Android NDK archive
+    dryrun: True if this is a dry-run.
+  """
+  dest = ABS_THIRD_PARTY_DIR.joinpath('ndk').absolute()
+  src = CACHE_DIR.joinpath(archive.filename)
+
+  if dest.exists():
+    if dryrun:
+      print(f"dryrun: shutil.rmtree(r'{dest}')")
+    else:
+      shutil.rmtree(dest)
+
+  if dryrun:
+    print(f"dryrun: mkdir -p '{dest}')")
+  else:
+    dest.mkdir(parents=True, exist_ok=True)
+
+  # Python's zipfile doesn't support symlink.
+  # We have to fallback to unzip command here.
+  args = ['unzip', str(src)]
+  if is_windows():
+    # For Windows, use tar.exe instead.
+    args = ['tar', '-xf', str(src)]
+
+  if dryrun:
+    print(f'dryrun: exec_command({args}, cwd={dest})')
+  else:
+    exec_command(args, cwd=dest, progress=True)
+  return
+
+
 def is_windows() -> bool:
   """Returns true if the platform is Windows."""
   return os.name == 'nt'
@@ -263,6 +317,11 @@ def is_windows() -> bool:
 def is_mac() -> bool:
   """Returns true if the platform is Mac."""
   return os.name == 'posix' and os.uname()[0] == 'Darwin'
+
+
+def is_linux() -> bool:
+  """Returns true if the platform is Linux."""
+  return os.name == 'posix' and os.uname()[0] == 'Linux'
 
 
 def update_submodules(dryrun: bool = False) -> None:
@@ -278,17 +337,42 @@ def update_submodules(dryrun: bool = False) -> None:
     subprocess.run(command, shell=True, check=True)
 
 
-def exec_command(args: list[str], cwd: os.PathLike[str]) -> None:
+def exec_command(
+    args: list[str],
+    cwd: os.PathLike[str],
+    progress: bool = False
+) -> None:
   """Runs the given command then returns the output.
 
   Args:
     args: The command to be executed.
     cwd: The working directory to execute the command.
+    progress: True to show progress.
 
   Raises:
     ChildProcessError: When the given command cannot be executed.
   """
-  process = subprocess.Popen(args, stdout=subprocess.PIPE, shell=False, cwd=cwd)
+  process = subprocess.Popen(
+      args,
+      cwd=cwd,
+      shell=False,
+      stdout=subprocess.PIPE,
+      text=True,
+  )
+  if progress:
+    with ProgressPrinter() as printer:
+      for line in process.stdout:
+        line = line.strip()
+        printer.print_line(line)
+        exitcode = process.poll()
+        if exitcode is None:
+          continue
+        if exitcode == 0:
+          return
+        raise ChildProcessError(
+            f'Failed to execute {args}. exitcode={exitcode}'
+        )
+    return
   _, _ = process.communicate()
   exitcode = process.wait()
   if exitcode != 0:
@@ -314,6 +398,7 @@ def main():
   parser.add_argument('--noninja', action='store_true', default=False)
   parser.add_argument('--noqt', action='store_true', default=False)
   parser.add_argument('--nowix', action='store_true', default=False)
+  parser.add_argument('--nondk', action='store_true', default=False)
   parser.add_argument('--nosubmodules', action='store_true', default=False)
   parser.add_argument('--cache_only', action='store_true', default=False)
 
@@ -327,6 +412,13 @@ def main():
       archives.append(NINJA_MAC)
     elif is_windows():
       archives.append(NINJA_WIN)
+  if (not args.nondk):
+    if is_linux():
+      archives.append(NDK_LINUX)
+    elif is_mac():
+      archives.append(NDK_MAC)
+    elif is_windows():
+      archives.append(NDK_WINDOWS)
 
   for archive in archives:
     download(archive, args.dryrun)
@@ -339,6 +431,10 @@ def main():
 
   if (NINJA_WIN in archives) or (NINJA_MAC in archives):
     extract_ninja(args.dryrun)
+
+  for ndk in [NDK_LINUX, NDK_MAC, NDK_WINDOWS]:
+    if ndk in archives:
+      extract_ndk(ndk, args.dryrun)
 
   if not args.nosubmodules:
     update_submodules(args.dryrun)
