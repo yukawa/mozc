@@ -204,21 +204,44 @@ register_extension_info(
     label_regex_for_dep = "{extension_name}",
 )
 
+def _ensure_item_exists(array, item):
+    item_lower = item.lower()
+    for v in array:
+        if v.lower() == item_lower:
+            return array
+    return array + [item]
+
 def _win_executable_transition_impl(
-        settings,  # @unused
+        settings,
         attr):
+    # Enable Link Time Code Generation (LTCG) for opt builds.
+    compilation_mode = str(settings["//command_line_option:compilation_mode"])
+    cxxopts = settings["//command_line_option:cxxopt"]
+    linkopts = settings["//command_line_option:linkopt"]
+    if compilation_mode == "opt":
+        cxxopts = _ensure_item_exists(cxxopts, "/GL")
+        linkopts = _ensure_item_exists(linkopts, "/LTCG")
+
     features = []
     if attr.static_crt:
         features = ["static_link_msvcrt"]
     return {
+        "//command_line_option:cxxopt": cxxopts,
+        "//command_line_option:linkopt": linkopts,
         "//command_line_option:features": features,
         "//command_line_option:platforms": [attr.platform],
     }
 
 _win_executable_transition = transition(
     implementation = _win_executable_transition_impl,
-    inputs = [],
+    inputs = [
+        "//command_line_option:compilation_mode",
+        "//command_line_option:cxxopt",
+        "//command_line_option:linkopt",
+    ],
     outputs = [
+        "//command_line_option:cxxopt",
+        "//command_line_option:linkopt",
         "//command_line_option:features",
         "//command_line_option:platforms",
     ],
