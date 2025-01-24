@@ -205,21 +205,50 @@ register_extension_info(
     label_regex_for_dep = "{extension_name}",
 )
 
+def _append_if_absent(target_list, item):
+    """Append the given item only when it is absent in the target.
+
+    Args:
+      target_list: a String list to be checked.
+      item: a String item that is to be made sure to exist in the list.
+    Returns:
+      list: target_list itself or a new list, where the given item exists.
+    """
+    if item in target_list:
+        return target_list
+    return target_list + [item]
+
 def _win_executable_transition_impl(
-        settings,  # @unused
+        settings,
         attr):
+    # Enable Link Time Code Generation (LTCG) for opt builds.
+    compilation_mode = str(settings["//command_line_option:compilation_mode"])
+    cxxopts = settings["//command_line_option:cxxopt"]
+    linkopts = settings["//command_line_option:linkopt"]
+    if compilation_mode == "opt":
+        cxxopts = _append_if_absent(cxxopts, "/GL")
+        linkopts = _append_if_absent(linkopts, "/LTCG")
+
     features = ["generate_pdb_file"]
     if attr.static_crt:
         features.append("static_link_msvcrt")
     return {
+        "//command_line_option:cxxopt": cxxopts,
+        "//command_line_option:linkopt": linkopts,
         "//command_line_option:features": features,
         "//command_line_option:platforms": [attr.platform],
     }
 
 _win_executable_transition = transition(
     implementation = _win_executable_transition_impl,
-    inputs = [],
+    inputs = [
+        "//command_line_option:compilation_mode",
+        "//command_line_option:cxxopt",
+        "//command_line_option:linkopt",
+    ],
     outputs = [
+        "//command_line_option:cxxopt",
+        "//command_line_option:linkopt",
         "//command_line_option:features",
         "//command_line_option:platforms",
     ],
@@ -338,6 +367,8 @@ def mozc_win32_cc_prod_binary(
     modified_linkopts.extend(linkopts)
     modified_linkopts.extend([
         "/DEBUG:FULL",
+        "/OPT:ICF",
+        "/OPT:REF",
         "/PDBALTPATH:%_PDB%",
     ])
 
