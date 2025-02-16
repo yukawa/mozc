@@ -73,6 +73,43 @@ def get_def_file_content(filename:str) -> str:
   ])
 
 
+def get_rc_file_content() -> str:
+  return '\n'.join([
+    '#include "winres.h"',
+    'LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT',
+    '',
+    'VS_VERSION_INFO VERSIONINFO',
+    'FILEVERSION 2,31,5500,0',
+    'PRODUCTVERSION 2,31,5500,0',
+    'FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PRERELEASE | VS_FF_PATCHED | VS_FF_INFOINFERRED',
+    'FILEFLAGS 0x0L',
+    'FILEOS VOS__WINDOWS32',
+    'FILETYPE VFT_DLL',
+    'FILESUBTYPE VFT2_UNKNOWN',
+    'BEGIN',
+    '    BLOCK "StringFileInfo"',
+    '    BEGIN',
+    '        BLOCK "041104b0"',
+    '        BEGIN',
+    '            VALUE "CompanyName", "Google LLC."',
+    '            VALUE "FileDescription", "Mozc TIP Module Forwarder"',
+    '            VALUE "FileVersion", "2.31.5500.0"',
+    '            VALUE "InternalName", "mozc_tip_shim_arm64"',
+    '            VALUE "LegalCopyright", "Google LLC."',
+    '            VALUE "OriginalFilename", "mozc_tip_shim_arm64.dll"',
+    '            VALUE "ProductName", "Mozc"',
+    '            VALUE "ProductVersion", "2.31.5500.0"',
+    '        END',
+    '    END',
+    '    BLOCK "VarFileInfo"',
+    '    BEGIN',
+    '        VALUE "Translation", 0x411, 1200',
+    '    END',
+    'END',
+    '',
+  ])
+
+
 def exec_command(
     command: list[str],
     cwd: Union[str, pathlib.Path],
@@ -135,6 +172,7 @@ def build_on_windows(args: argparse.Namespace) -> None:
 
     cl = shutil.which('cl.exe', path=env['PATH'])
     link = shutil.which('link.exe', path=env['PATH'])
+    rc = shutil.which('rc.exe', path=env['PATH'])
 
     exec_command([cl, '/nologo', '/c', '/Foempty_arm64.obj', 'empty.cc'], cwd=work_dir, env=env, dryrun=args.dryrun)
     exec_command([cl, '/nologo', '/c', '/arm64EC', '/Foempty_x64.obj', 'empty.cc'], cwd=work_dir, env=env, dryrun=args.dryrun)
@@ -148,10 +186,16 @@ def build_on_windows(args: argparse.Namespace) -> None:
     exec_command([link, '/lib', '/machine:x64', '/ignore:4104', '/def:mozc_x64.def', '/out:mozc_x64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
     exec_command([link, '/lib', '/machine:arm64', '/ignore:4104', '/def:mozc_arm64.def', '/out:mozc_arm64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
 
+    rc_file = pathlib.Path(work_dir).joinpath('mozc_tip_shim_arm64.rc')
+    rc_file.write_text(get_rc_file_content())
+
+    exec_command([
+        rc, '/nologo', '/r', '/8', str(rc_file)], cwd=work_dir, env=env, dryrun=args.dryrun)
+
     exec_command([
         link, '/dll', '/noentry', '/machine:arm64x', '/ignore:4104',
         '/defArm64Native:mozc_arm64.def', '/def:mozc_x64.def', 'empty_arm64.obj', 
-        'empty_x64.obj', '/out:mozc_tip_shim_arm64.dll', 'mozc_arm64.lib',
+        'empty_x64.obj', '/out:mozc_tip_shim_arm64.dll', 'mozc_arm64.lib', 'mozc_tip_shim_arm64.res',
         'mozc_x64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
 
     src = pathlib.Path(work_dir).joinpath('mozc_tip_shim_arm64.dll')
