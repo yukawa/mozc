@@ -47,8 +47,9 @@ import tarfile
 import tempfile
 import time
 from typing import Any, Union
-from vs_util import get_vs_env_vars
 
+from mozc_version import MozcVersion
+from vs_util import get_vs_env_vars
 
 ABS_SCRIPT_PATH = pathlib.Path(__file__).absolute()
 
@@ -62,53 +63,156 @@ def parse_args() -> argparse.Namespace:
   """Parse command line options."""
   parser = argparse.ArgumentParser()
   parser.add_argument('--dryrun', action='store_true', default=False)
+
+  parser.add_argument(
+      '--version_file',
+      dest='version_file',
+      help='the path to version.txt',
+  )
+  parser.add_argument(
+      '--branding',
+      dest='branding',
+      default='Mozc',
+      choices=['Mozc', 'GoogleJapaneseInput'],
+      help='branding',
+  )
+  parser.add_argument(
+      '--out',
+      dest='out',
+      help='the path of the generated forwarder DLL file',
+  )
+  parser.add_argument(
+      '--arch',
+      dest='arch',
+      choices=['x64', 'arm64x'],
+      help='the architecture of the forwarder DLL',
+  )
+
   return parser.parse_args()
 
 
-def get_def_file_content(filename:str) -> str:
-  return '\n'.join([
-    'EXPORTS',
-    f'    DllGetClassObject = {filename}.DllGetClassObject',
-    f'    DllCanUnloadNow   = {filename}.DllCanUnloadNow',
-  ])
+@dataclasses.dataclass
+class ForwarderInfo:
+  """Third party archive file to be used to build Mozc binaries.
 
+  Attributes:
+  """
+  arch: str
+  branding: str
+  version: MozcVersion
 
-def get_rc_file_content() -> str:
-  return '\n'.join([
-    '#include "winres.h"',
-    'LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT',
-    '',
-    'VS_VERSION_INFO VERSIONINFO',
-    'FILEVERSION 2,31,5500,0',
-    'PRODUCTVERSION 2,31,5500,0',
-    'FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PRERELEASE | VS_FF_PATCHED | VS_FF_INFOINFERRED',
-    'FILEFLAGS 0x0L',
-    'FILEOS VOS__WINDOWS32',
-    'FILETYPE VFT_DLL',
-    'FILESUBTYPE VFT2_UNKNOWN',
-    'BEGIN',
-    '    BLOCK "StringFileInfo"',
-    '    BEGIN',
-    '        BLOCK "041104b0"',
-    '        BEGIN',
-    '            VALUE "CompanyName", "Google LLC"',
-    '            VALUE "FileDescription", "Mozc TIP Module Forwarder"',
-    '            VALUE "FileVersion", "2.31.5500.0"',
-    '            VALUE "InternalName", "mozc_tip_shim_arm64"',
-    '            VALUE "LegalCopyright", "Google LLC"',
-    '            VALUE "OriginalFilename", "mozc_tip_shim_arm64.dll"',
-    '            VALUE "ProductName", "Mozc"',
-    '            VALUE "ProductVersion", "2.31.5500.0"',
-    '        END',
-    '    END',
-    '    BLOCK "VarFileInfo"',
-    '    BEGIN',
-    '        VALUE "Translation", 0x411, 1200',
-    '    END',
-    'END',
-    '',
-  ])
+  def get_version_string(self, separator='.') -> str:
+    components = [
+      '@MAJOR@',
+      '@MINOR@',
+      '@BUILD@',
+      '@REVISION@'
+    ]
+    return self.version.GetVersionInFormat(separator.join(components))
 
+  @property
+  def forwarder_dll_name(self) -> str:
+    if self.arch == 'arm64x':
+      return {
+        'Mozc': 'mozc_tip_forwarder_arm64x.dll',
+        'GoogleJapaneseInput': 'GoogleIMEJaTIPForwarderArm64X.dll',
+      }[self.branding]
+    elif self.arch == 'x64':
+      return {
+        'Mozc': 'mozc_tip_forwarder_x64.dll',
+        'GoogleJapaneseInput': 'GoogleIMEJaTIPForwarderX64.dll',
+      }[self.branding]
+    else:
+      raise ValueError(f'unrecognized arch: {self.arch}')
+
+  @property
+  def arm64_impl_dll_name(self) -> str:
+    return {
+      'Mozc': 'mozc_tip_arm64.dll',
+      'GoogleJapaneseInput': 'GoogleIMEJaTIP_arm64.dll',
+    }[self.branding]
+
+  @property
+  def x64_impl_dll_name(self) -> str:
+    return {
+      'Mozc': 'mozc_tip_x64.dll',
+      'GoogleJapaneseInput': 'GoogleIMEJaTIP_x64.dll',
+    }[self.branding]
+
+  @property
+  def file_description(self) -> str:
+    return {
+      'Mozc': 'Mozc TIP Module Forwarder',
+      'GoogleJapaneseInput': 'Google 日本語入力 TIP モジュール フォワーダー',
+    }[self.branding]
+
+  @property
+  def product_name(self) -> str:
+    return {
+      'Mozc': 'Mozc',
+      'GoogleJapaneseInput': 'Google 日本語入力',
+    }[self.branding]
+
+  @staticmethod
+  def _get_def_file_content(filename:str) -> str:
+    stem = str(pathlib.Path(filename).stem)
+    return '\n'.join([
+      'EXPORTS',
+      f'    DllGetClassObject = {stem}.DllGetClassObject',
+      f'    DllCanUnloadNow   = {stem}.DllCanUnloadNow',
+    ])
+
+  def get_def_file_content_for_x64(self) -> str:
+    return self._get_def_file_content(self.x64_impl_dll_name)
+
+  def get_def_file_content_for_arm64(self) -> str:
+    return self._get_def_file_content(self.arm64_impl_dll_name)
+
+  def get_rc_file_content(self) -> str:
+    comma_separated_versoin = self.get_version_string(',')
+    dot_separated_versoin = self.get_version_string('.')
+    file_description = self.file_description
+
+    original_file_name = None
+    original_file_name = self.forwarder_dll_name
+    internal_name = str(pathlib.Path(original_file_name).stem)
+    product_name = self.product_name
+    copyright = 'Google LLC'
+
+    return '\n'.join([
+      '#include "winres.h"',
+      'LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT',
+      '',
+      'VS_VERSION_INFO VERSIONINFO',
+      f'FILEVERSION {comma_separated_versoin}',
+      f'PRODUCTVERSION {comma_separated_versoin}',
+      'FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PRERELEASE | VS_FF_PATCHED | VS_FF_INFOINFERRED',
+      'FILEFLAGS 0x0L',
+      'FILEOS VOS__WINDOWS32',
+      'FILETYPE VFT_DLL',
+      'FILESUBTYPE VFT2_UNKNOWN',
+      'BEGIN',
+      '    BLOCK "StringFileInfo"',
+      '    BEGIN',
+      '        BLOCK "041104b0"',
+      '        BEGIN',
+      f'            VALUE "CompanyName", "{copyright}"',
+      f'            VALUE "FileDescription", "{file_description}"',
+      f'            VALUE "FileVersion", "{dot_separated_versoin}"',
+      f'            VALUE "InternalName", "{internal_name}"',
+      f'            VALUE "LegalCopyright", "{copyright}"',
+      f'            VALUE "OriginalFilename", "{original_file_name}"',
+      f'            VALUE "ProductName", "{product_name}"',
+      f'            VALUE "ProductVersion", "{dot_separated_versoin}"',
+      '        END',
+      '    END',
+      '    BLOCK "VarFileInfo"',
+      '    BEGIN',
+      '        VALUE "Translation", 0x411, 1200',
+      '    END',
+      'END',
+      '',
+    ])
 
 def exec_command(
     command: list[str],
@@ -162,9 +266,19 @@ def build_on_windows(args: argparse.Namespace) -> None:
   """
   host_arch = normalize_win_arch(platform.uname().machine)
 
-  target_arch = 'arm64'
+  version = MozcVersion(args.version_file)
+  info = ForwarderInfo(arch=args.arch, branding=args.branding, version=version)
+
+  target_arch = 'arm64' if info.arch == 'arm64x' else 'x64'
   arch = host_arch if host_arch == target_arch else f'{host_arch}_{target_arch}'
   env = get_vs_env_vars(arch)
+
+  dest = pathlib.Path(args.out)
+  if dest.exists():
+    if args.dryrun:
+      print(f'dryrun: unlinking {str(dest)}')
+    else:
+      dest.unlink()
 
   with tempfile.TemporaryDirectory() as work_dir:
     empty_cc = pathlib.Path(work_dir).joinpath('empty.cc')
@@ -174,33 +288,46 @@ def build_on_windows(args: argparse.Namespace) -> None:
     link = shutil.which('link.exe', path=env['PATH'])
     rc = shutil.which('rc.exe', path=env['PATH'])
 
-    exec_command([cl, '/nologo', '/c', '/Foempty_arm64.obj', 'empty.cc'], cwd=work_dir, env=env, dryrun=args.dryrun)
-    exec_command([cl, '/nologo', '/c', '/arm64EC', '/Foempty_x64.obj', 'empty.cc'], cwd=work_dir, env=env, dryrun=args.dryrun)
+    if info.arch == 'arm64x':
+      exec_command([cl, '/nologo', '/c', '/Foempty_arm64.obj', 'empty.cc'], cwd=work_dir, env=env, dryrun=args.dryrun)
+      exec_command([cl, '/nologo', '/c', '/arm64EC', '/Foempty_x64.obj', 'empty.cc'], cwd=work_dir, env=env, dryrun=args.dryrun)
+    else:
+      exec_command([cl, '/nologo', '/c', '/Foempty_x64.obj', 'empty.cc'], cwd=work_dir, env=env, dryrun=args.dryrun)
 
     mozc_x64_def = pathlib.Path(work_dir).joinpath('mozc_x64.def')
-    mozc_x64_def.write_text(get_def_file_content('mozc_x64'))
+    mozc_x64_def.write_text(info.get_def_file_content_for_x64(), encoding='utf-8')
+    exec_command([link, '/lib', '/nologo', '/machine:x64', '/ignore:4104', '/def:mozc_x64.def', '/out:mozc_x64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
 
-    mozc_arm64_def = pathlib.Path(work_dir).joinpath('mozc_arm64.def')
-    mozc_arm64_def.write_text(get_def_file_content('mozc_arm64'))
+    if info.arch == 'arm64x':
+      mozc_arm64_def = pathlib.Path(work_dir).joinpath('mozc_arm64.def')
+      mozc_arm64_def.write_text(info.get_def_file_content_for_arm64(), encoding='utf-8')
+      exec_command([link, '/lib', '/nologo', '/machine:arm64', '/ignore:4104', '/def:mozc_arm64.def', '/out:mozc_arm64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
 
-    exec_command([link, '/lib', '/machine:x64', '/ignore:4104', '/def:mozc_x64.def', '/out:mozc_x64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
-    exec_command([link, '/lib', '/machine:arm64', '/ignore:4104', '/def:mozc_arm64.def', '/out:mozc_arm64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
-
-    rc_file = pathlib.Path(work_dir).joinpath('mozc_tip_shim_arm64.rc')
-    rc_file.write_text(get_rc_file_content())
+    rc_file = pathlib.Path(work_dir).joinpath('mozc_tip_shim.rc')
+    rc_file.write_text(info.get_rc_file_content(), encoding='utf-8')
 
     exec_command([
         rc, '/nologo', '/r', '/8', str(rc_file)], cwd=work_dir, env=env, dryrun=args.dryrun)
 
-    exec_command([
-        link, '/dll', '/noentry', '/machine:arm64x', '/ignore:4104',
-        '/defArm64Native:mozc_arm64.def', '/def:mozc_x64.def', 'empty_arm64.obj', 
-        'empty_x64.obj', '/out:mozc_tip_shim_arm64.dll', 'mozc_arm64.lib', 'mozc_tip_shim_arm64.res',
-        'mozc_x64.lib'], cwd=work_dir, env=env, dryrun=args.dryrun)
+    forwarder_filename = pathlib.Path(info.forwarder_dll_name).name
+    if info.arch == 'arm64x':
+      exec_command([
+          link, '/dll', '/nologo', '/noentry', '/machine:arm64x', '/ignore:4104',
+          '/defArm64Native:mozc_arm64.def', '/def:mozc_x64.def', f'/out:{forwarder_filename}',
+          'empty_arm64.obj', 'empty_x64.obj', 'mozc_arm64.lib', 'mozc_x64.lib',
+          'mozc_tip_shim.res'], cwd=work_dir, env=env, dryrun=args.dryrun)
+    else:
+      exec_command([
+          link, '/dll', '/nologo', '/noentry', '/machine:x64', '/ignore:4104',
+          '/def:mozc_x64.def', f'/out:{forwarder_filename}', 'empty_x64.obj',
+          'mozc_x64.lib', 'mozc_tip_shim.res'],
+          cwd=work_dir, env=env, dryrun=args.dryrun)
 
-    src = pathlib.Path(work_dir).joinpath('mozc_tip_shim_arm64.dll')
-    dest = pathlib.Path('D:\\').joinpath('mozc_tip_shim_arm64.dll')
-    # shutil.copy2(src=src, dst=dest)
+    src = pathlib.Path(work_dir).joinpath(forwarder_filename)
+    if args.dryrun:
+      print(f'dryrun: Copying {src} to {dest}')
+    else:
+      shutil.copy2(src=src, dst=dest)
 
 
 def main():
