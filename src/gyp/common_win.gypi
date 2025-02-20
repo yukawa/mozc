@@ -139,6 +139,9 @@
               '/CETCOMPAT',
             ],
           },
+          'VCResourceCompilerTool': {
+            'PreprocessorDefinitions': ['_X86_'],
+          },
         },
         'msvs_configuration_attributes': {
           'OutputDirectory': '<(build_base)/$(ConfigurationName)',
@@ -164,6 +167,9 @@
             'AdditionalOptions': [
               '/CETCOMPAT',
             ],
+          },
+          'VCResourceCompilerTool': {
+            'PreprocessorDefinitions': ['_AMD64_'],
           },
         },
       },

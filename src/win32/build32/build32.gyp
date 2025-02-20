@@ -43,7 +43,7 @@
           'target_name': 'mozc_win32_build32',
           'type': 'none',
           'dependencies': [
-            '../tip/tip.gyp:mozc_tip32',
+            '../tip/tip.gyp:mozc_tip_x86',
           ],
           'conditions': [
             ['use_qt!="YES"', {
