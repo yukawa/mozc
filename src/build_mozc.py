@@ -382,7 +382,7 @@ def UpdateEnvironmentFilesForWindows(out_dir, vcvarsall_path):
   for d in os.listdir(out_dir):
     abs_dir = os.path.abspath(os.path.join(out_dir, d))
     # Tweak generated build rules for ARM64
-    if d.endswith('arm64'):
+    if d.endswith('arm64') or d.endswith('arm64ec'):
       build_ninja = os.path.join(abs_dir, 'build.ninja')
       with open(build_ninja, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -396,7 +396,7 @@ def UpdateEnvironmentFilesForWindows(out_dir, vcvarsall_path):
       env_file = os.path.join(abs_dir, f'environment.{arch}')
       env = ReadEnvironmentFile(env_file)
       # Tweak for ARM64
-      if d.endswith('arm64'):
+      if d.endswith('arm64') or d.endswith('arm64ec'):
         vs_arch = platform.uname().machine
         if vs_arch != 'arm64':
           vs_arch = vs_arch + '_arm64'

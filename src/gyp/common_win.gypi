@@ -188,6 +188,33 @@
           },
         },
       },
+      'arm64ec_Base': {
+        'abstract': 1,
+        'msvs_configuration_attributes': {
+          'OutputDirectory': '<(build_base)/$(ConfigurationName)_arm64ec',
+          'IntermediateDirectory': '<(build_base)/$(ConfigurationName)_arm64ec/obj/$(ProjectName)',
+        },
+        'msvs_target_platform': 'arm64ec',
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            'AdditionalOptions': [
+              '/bigobj',
+              '/arm64EC',
+            ],
+          },
+          'VCLibrarianTool': {
+            'AdditionalOptions': [
+              '/MACHINE:ARM64EC',
+            ],
+          },
+          'VCLinkerTool': {
+            'ImageHasSafeExceptionHandlers': 'false',
+            'AdditionalOptions': [
+              '/MACHINE:ARM64EC',
+            ],
+          },
+        },
+      },
       'Win_Static_Debug_CRT_Base': {
         'abstract': 1,
         'msvs_settings': {
@@ -302,6 +329,12 @@
       },
       'Release_arm64': {
         'inherit_from': ['arm64_Base', 'Release_Base', 'Win_Static_Release_CRT_Base'],
+      },
+      'Debug_arm64ec': {
+        'inherit_from': ['arm64ec_Base', 'Debug_Base', 'Win_Static_Debug_CRT_Base'],
+      },
+      'Release_arm64ec': {
+        'inherit_from': ['arm64ec_Base', 'Release_Base', 'Win_Static_Release_CRT_Base'],
       },
     },
     'default_configuration': 'Debug',
