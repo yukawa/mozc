@@ -94,6 +94,7 @@
       <ComponentRef Id="MozcTIPx86" />
       <ComponentRef Id="MozcTIPx64" />
       <ComponentRef Id="MozcTIPx64Pdb" />
+      <ComponentRef Id="MozcTIPForwarderX64" />
       <ComponentRef Id="MozcBroker" />
       <ComponentRef Id="MozcConverter" />
       <ComponentRef Id="MozcCacheService" />
@@ -223,13 +224,14 @@
             <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
           </File>
         </Component>
-        <Component Id="MozcTIPx64" Permanent="no" Bitness="always64">
-          <File Id="mozc_tip_x64.dll" Name="mozc_tip_x64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPx64Path)" Vital="yes">
-            <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
-          </File>
-        </Component>
+        <Component Id="MozcTIPx64" Permanent="no" Bitness="always64" />
         <Component Id="MozcTIPx64Pdb" Permanent="no" Bitness="always64">
           <File Id="mozc_tip_x64.dll.pdb" Name="mozc_tip_x64.dll.pdb" DiskId="1" Checksum="yes" Source="$(var.MozcTIPx64PdbPath)" Vital="yes" />
+        </Component>
+        <Component Id="MozcTIPForwarderX64" Permanent="no" Bitness="always64">
+          <File Id="mozc_tip_forwarder_x64.dll" Name="mozc_tip_forwarder_x64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPForwarderX64)" Vital="yes">
+            <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
+          </File>
         </Component>
         <Component Id="MozcBroker" Permanent="no">
           <File Id="mozc_broker.exe" Name="mozc_broker.exe" DiskId="1" Checksum="yes" Source="$(var.MozcBroker64Path)" Vital="yes" />
