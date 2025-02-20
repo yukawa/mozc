@@ -56,6 +56,7 @@
             'mozc_content_dir': '<(DEPTH)/data',
             'mozc_renderer64_path': '<(outdir64_dynamic)/GoogleIMEJaRenderer.exe',
             'mozc_server64_path': '<(outdir64_dynamic)/GoogleIMEJaConverter.exe',
+            'mozc_tip_forwarder_x64_path': '<(SHARED_INTERMEDIATE_DIR)/win32/installer/GoogleIMEJaTIPForwarder_x64.dll',
             'mozc_tip_x86_path': '<(outdir32)/GoogleIMEJaTIP_x86.dll',
             'mozc_tip_x64_path': '<(outdir64)/GoogleIMEJaTIP_x64.dll',
             'mozc_tip_x64_pdb_path': '<(outdir64)/GoogleIMEJaTIP_x64.dll.stripped.pdb',
@@ -72,6 +73,7 @@
             'mozc_content_dir': '<(DEPTH)/data',
             'mozc_renderer64_path': '<(outdir64_dynamic)/mozc_renderer.exe',
             'mozc_server64_path': '<(outdir64_dynamic)/mozc_server.exe',
+            'mozc_tip_forwarder_x64_path': '<(SHARED_INTERMEDIATE_DIR)/win32/installer/mozc_tip_forwarder_x64.dll',
             'mozc_tip_x86_path': '<(outdir32)/mozc_tip_x86.dll',
             'mozc_tip_x64_path': '<(outdir64)/mozc_tip_x64.dll',
             'mozc_tip_x64_pdb_path': '<(outdir64)/mozc_tip_x64.dll.stripped.pdb',
@@ -90,6 +92,7 @@
         'mozc_tip_x86_path': '<(mozc_tip_x86_path)',
         'mozc_tip_x64_path': '<(mozc_tip_x64_path)',
         'mozc_tip_x64_pdb_path': '<(mozc_tip_x64_pdb_path)',
+        'mozc_tip_forwarder_x64_path': '<(mozc_tip_forwarder_x64_path)',
         'mozc_tool_path': '<(mozc_tool_path)',
         'mozc_broker64_path': '<(mozc_broker64_path)',
         'mozc_ca64_path': '<(mozc_ca64_path)',
@@ -102,6 +105,7 @@
           '<(mozc_cache_service64_path)',
           '<(mozc_renderer64_path)',
           '<(mozc_server64_path)',
+          '<(mozc_tip_forwarder_x64_path)',
           '<(mozc_tip_x86_path)',
           '<(mozc_tip_x64_path)',
           '<(mozc_tip_x64_pdb_path)',
@@ -109,6 +113,34 @@
         ],
       },
       'targets': [
+        {
+          'target_name': 'mozc_tip_forwarder_x64',
+          'type': 'none',
+          'actions': [
+            {
+              'action_name': 'generate_forwarder',
+              'variables': {
+                'script_path': '<(mozc_oss_src_dir)/build_tools/build_tip_forwarder_dll.py',
+                'version_file_path': '<(mozc_src_dir)/mozc_version.txt',
+              },
+              'inputs': [
+                '<(script_path)',
+                '<(version_file_path)',
+              ],
+              'outputs': [
+                '<(mozc_tip_forwarder_x64_path)',
+              ],
+              'action': [
+                '<(python)', '<(script_path)',
+                '--version_file', '<(version_file_path)',
+                '--branding', '<(branding)',
+                '--arch', 'x64',
+                '--output', '<@(_outputs)',
+              ],
+              'message': 'Generating TIP forwarder <@(_outputs)',
+            },
+          ],
+        },
         {
           'target_name': 'mozc_64bit_installer',
           'type': 'none',
@@ -158,6 +190,7 @@
                 '-define', 'ReleaseRedistCrt32Dir=<(release_redist_32bit_crt_dir)',
                 '-define', 'ReleaseRedistCrt64Dir=<(release_redist_64bit_crt_dir)',
                 '-define', 'AddRemoveProgramIconPath=<(icon_path)',
+                '-define', 'MozcTIPForwarderX64=<(mozc_tip_forwarder_x64_path)',
                 '-define', 'MozcTIPx86Path=<(mozc_tip_x86_path)',
                 '-define', 'MozcTIPx64Path=<(mozc_tip_x64_path)',
                 '-define', 'MozcTIPx64PdbPath=<(mozc_tip_x64_pdb_path)',
