@@ -44,7 +44,7 @@
           'type': 'none',
           'dependencies': [
             '../custom_action/custom_action.gyp:mozc_custom_action',
-            '../tip/tip.gyp:mozc_tip64',
+            '../tip/tip.gyp:mozc_tip_x64',
           ],
         },
       ],
