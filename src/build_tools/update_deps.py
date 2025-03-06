@@ -40,6 +40,7 @@ import dataclasses
 import hashlib
 import os
 import pathlib
+import platform
 import shutil
 import stat
 import subprocess
@@ -114,10 +115,16 @@ NINJA_WIN = ArchiveInfo(
     sha256='d0ee3da143211aa447e750085876c9b9d7bcdd637ab5b2c5b41349c617f22f3b',
 )
 
-LLVM_WIN = ArchiveInfo(
-    url='https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/clang+llvm-19.1.7-x86_64-pc-windows-msvc.tar.xz',
-    size=845236708,
-    sha256='b4557b4f012161f56a2f5d9e877ab9635cafd7a08f7affe14829bd60c9d357f0',
+LLVM_WIN_X64 = ArchiveInfo(
+    url='https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.0/clang+llvm-20.1.0-x86_64-pc-windows-msvc.tar.xz',
+    size=939145596,
+    sha256='91e29416f4a0c188368f0540a5538efc0d8a9f7134afba7a2160296472ce84eb',
+)
+
+LLVM_WIN_ARM64 = ArchiveInfo(
+    url='https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.0/clang+llvm-20.1.0-aarch64-pc-windows-msvc.tar.xz',
+    size=898568132,
+    sha256='f52e40d68843ed6205858e817ed791295ef51e526037186352a1aeac4a59e51a',
 )
 
 def get_sha256(path: pathlib.Path) -> str:
@@ -268,16 +275,16 @@ class StatefulLLVMExtractionFilter:
     return member
 
 
-def extract_llvm(dryrun: bool = False) -> None:
+def extract_llvm(archive: ArchiveInfo, dryrun: bool = False) -> None:
   """Extract LLVM archive.
 
   Args:
+    archive: LLVM archive
     dryrun: True if this is a dry-run.
   """
   if not is_windows():
     return
 
-  archive = LLVM_WIN
   src = CACHE_DIR.joinpath(archive.filename)
   dest = ABS_THIRD_PARTY_DIR.joinpath('llvm').absolute()
 
@@ -470,7 +477,13 @@ def main():
     elif is_mac():
       archives.append(NDK_MAC)
   if (not args.nollvm) and is_windows():
-    archives.append(LLVM_WIN)
+    llvm = {
+      'amd64': LLVM_WIN_X64,
+      'arm64': LLVM_WIN_ARM64,
+      'x64': LLVM_WIN_X64,
+    }[platform.uname().machine.lower()]
+    if llvm:
+      archives.append(llvm)
 
   for archive in archives:
     download(archive, args.dryrun)
@@ -478,8 +491,10 @@ def main():
   if args.cache_only:
     return
 
-  if LLVM_WIN in archives:
-    extract_llvm(args.dryrun)
+  for llvm in [LLVM_WIN_ARM64, LLVM_WIN_X64]:
+    if llvm in archives:
+      extract_llvm(llvm, args.dryrun)
+      break
 
   if (not args.nowix) and is_windows():
     restore_dotnet_tools(args.dryrun)
