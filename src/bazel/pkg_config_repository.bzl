@@ -97,6 +97,25 @@ def _itemize_pkg_config_result(result):
             items.append(item)
     return items
 
+def _get_possible_pc_files(repo_ctx, pkg_config, packages):
+    """
+    Get all possible .pc file paths for the given packages in pkg-config search
+    paths.
+    """
+    result = repo_ctx.execute([pkg_config, "--variable=pc_path", "pkg-config"])
+    if result.return_code != 0:
+        print("Failed to get pkg-config search paths: " + result.stderr)  # buildifier: disable=print
+        return []
+
+    # Split the colon-separated list of directories
+    pkg_config_search_paths = result.stdout.strip().split(":")
+
+    for path in pkg_config_search_paths:
+        for package in packages:
+            pc_file = path + "/" + package + ".pc"
+            pc_files.append(pc_file)
+    return pc_files
+
 def _make_strlist(list):
     return "\"" + "\",\n        \"".join(list) + "\""
 
@@ -118,6 +137,14 @@ def _pkg_config_repository_impl(repo_ctx):
         fail("pkg-config is not found")
 
     packages = repo_ctx.attr.packages
+
+    # Register all possible .pc files for watching to trigger repository
+    # reevaluation.
+    # This includes files that don't exist yet but might be created later
+    # (e.g., when a new package is installed).
+    pc_files = _get_possible_pc_files(repo_ctx, pkg_config, packages)
+    for pc_file in pc_files:
+        repo_ctx.watch(pc_file)
 
     missing_package_found = False
     for pkg in packages:
