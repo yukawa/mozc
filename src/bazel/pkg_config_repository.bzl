@@ -78,17 +78,24 @@ EXPORTS_FILES_TEMPLATE = """
 exports_files(glob(["libexec/*"], allow_empty=True))
 """
 
-def _exec_pkg_config(repo_ctx, flags):
-    binary = repo_ctx.which("pkg-config")
-    if not binary:
-        # Using print is not recommended, but this will be a clue to debug build errors in
-        # the case of pkg-config is not found.
-        print("pkg-config is not found")  # buildifier: disable=print
+def _itemize_pkg_config_result(result):
+    """Get the list of items in pkg-config result with removing duplicate items.
+
+    Args:
+      result: the returned object from repo_ctx.execute.
+    Returns:
+      list: a string list that is constructed by splitting the result with
+            space. An empty list if the command failed.
+    """
+    if result.return_code != 0:
         return []
-    result = repo_ctx.execute([binary] + flags + repo_ctx.attr.packages)
-    items = result.stdout.strip().split(" ")
-    uniq_items = sorted({key: None for key in items}.keys())
-    return uniq_items
+
+    # Dedup with keeping the original order.
+    items = []
+    for item in result.stdout.strip().split(" "):
+        if item and (item not in items):
+            items.append(item)
+    return items
 
 def _make_strlist(list):
     return "\"" + "\",\n        \"".join(list) + "\""
@@ -100,14 +107,40 @@ def _symlinks(repo_ctx, paths):
         repo_ctx.symlink("/" + path, path)
 
 def _pkg_config_repository_impl(repo_ctx):
-    includes = _exec_pkg_config(repo_ctx, ["--cflags-only-I"])
+    # Do nothing for macOS and Windows.
+    for os in ["mac", "win"]:
+        if repo_ctx.os.name.lower().startswith(os):
+            repo_ctx.file("BUILD.bazel", "")
+            return
+
+    pkg_config = repo_ctx.which("pkg-config")
+    if not pkg_config:
+        fail("pkg-config is not found")
+
+    packages = repo_ctx.attr.packages
+
+    missing_package_found = False
+    for pkg in packages:
+        if repo_ctx.execute([pkg_config, "--exists", pkg]).return_code != 0:
+            print("Missing package: " + pkg)  # buildifier: disable=print
+            missing_package_found = True
+
+    if missing_package_found:
+        repo_ctx.file("BUILD.bazel", "")
+        return
+
+    includes = _itemize_pkg_config_result(
+        repo_ctx.execute([pkg_config, "--cflags-only-I"] + packages),
+    )
 
     # If includes is empty, pkg-config will be re-executed with
     # the --keep-system-cflags option added. Typically, -I/usr/include is
     # returned, enabling bazel to recognize packages as valid even when
     # pkg-config does not output cflags with standard options.
-    if includes[0] == "":
-        includes = _exec_pkg_config(repo_ctx, ["--cflags-only-I", "--keep-system-cflags"])
+    if not includes:
+        includes = _itemize_pkg_config_result(repo_ctx.execute(
+            [pkg_config, "--cflags-only-I", "--keep-system-cflags"] + packages,
+        ))
     includes = [item[len("-I/"):] for item in includes]
     _symlinks(repo_ctx, includes)
     data = {
@@ -116,13 +149,19 @@ def _pkg_config_repository_impl(repo_ctx):
         # https://github.com/bazelbuild/bazel/issues/23127
         "name": repo_ctx.attr.name.replace("~", "+").split("+")[-1],
         "hdrs": _make_strlist([item + "/**" for item in includes]),
-        "copts": _make_strlist(_exec_pkg_config(repo_ctx, ["--cflags-only-other"])),
+        "copts": _make_strlist(_itemize_pkg_config_result(
+            repo_ctx.execute([pkg_config, "--cflags-only-other"] + packages),
+        )),
         "includes": _make_strlist(includes),
-        "linkopts": _make_strlist(_exec_pkg_config(repo_ctx, ["--libs-only-l"])),
+        "linkopts": _make_strlist(_itemize_pkg_config_result(
+            repo_ctx.execute([pkg_config, "--libs-only-l"] + packages),
+        )),
     }
     build_file_data = BUILD_TEMPLATE.format(**data)
 
-    libexecdir = _exec_pkg_config(repo_ctx, ["--variable=libexecdir"])
+    libexecdir = _itemize_pkg_config_result(
+        repo_ctx.execute([pkg_config, "--variable=libexecdir"] + packages),
+    )
     if len(libexecdir) == 1:
         repo_ctx.symlink(libexecdir[0], "libexec")
         build_file_data += EXPORTS_FILES_TEMPLATE
