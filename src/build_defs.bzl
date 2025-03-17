@@ -498,7 +498,6 @@ def mozc_cc_win32_library(
         name = cc_binary_target_name,
         srcs = srcs,
         deps = deps,
-        features = ["-generate_pdb_file"],
         win_def_file = win_def_file,
         linkshared = 1,
         tags = tags,
