@@ -107,17 +107,17 @@ def SkipLineComment(stream, comment_prefix='#'):
   for line in stream:
     stripped_line = line.strip()
     if stripped_line and not stripped_line.startswith(comment_prefix):
-      yield line.rstrip('\n')
+      yield line.strip('\r\n')
 
 
 def ParseColumnStream(stream, num_column=None, delimiter=None):
   """Returns parsed columns read from stream."""
   if num_column is None:
     for line in stream:
-      yield line.rstrip('\n').split(delimiter)
+      yield line.strip('\r\n').split(delimiter)
   else:
     for line in stream:
-      yield line.rstrip('\n').split(delimiter)[:num_column]
+      yield line.strip('\r\n').split(delimiter)[:num_column]
 
 
 def SelectColumn(stream, column_index):
