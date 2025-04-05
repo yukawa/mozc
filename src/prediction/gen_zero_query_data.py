@@ -283,8 +283,8 @@ def main():
 
   if options.output_tsv:
     with codecs.open(options.output_tsv, 'w', encoding='utf-8') as f:
-      for key, values in merged_zero_query_dict.items():
-        for value in values:
+      for key in sorted(merged_zero_query_dict):
+        for value in merged_zero_query_dict[key]:
           f.write(key + '\t' + value.value + '\n')
 
 if __name__ == '__main__':
