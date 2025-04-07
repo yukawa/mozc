@@ -203,7 +203,7 @@ def main():
     lines += ProcessJigyosyoCSV(options.jigyosyo)
 
   if options.output:
-    with open(options.output, 'w', encoding='utf-8') as output:
+    with open(options.output, 'w', encoding='utf-8', newline='\n') as output:
       if lines:
         output.write('\n'.join(lines) + '\n')
   else:

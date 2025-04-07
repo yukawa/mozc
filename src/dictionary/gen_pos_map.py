@@ -119,7 +119,7 @@ def main():
   pos_map = GeneratePosMap(options.third_party_pos_map_file,
                            options.user_pos_file)
 
-  with open(options.output, 'w') as stream:
+  with open(options.output, 'w', newline='\n') as stream:
     OutputPosMap(pos_map, stream)
 
 

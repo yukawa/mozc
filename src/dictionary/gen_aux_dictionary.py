@@ -208,7 +208,7 @@ class AuxDictionary:
     return entry_key in self.aux_set
 
   def WriteFile(self, output):
-    with open(output, 'w', encoding='utf-8') as file:
+    with open(output, 'w', encoding='utf-8', newline='\n') as file:
       for aux_entry in self.aux_list:
         file.write('\t'.join(aux_entry) + '\n')
 
@@ -254,7 +254,7 @@ class WordsDictionary:
       self.words.append([key, pos_id, pos_id, str(cost), value])
 
   def WriteFile(self, output):
-    with open(output, 'a', encoding='utf-8') as file:
+    with open(output, 'a', encoding='utf-8', newline='\n') as file:
       for word in self.words:
         file.write('\t'.join(word) + '\n')
 

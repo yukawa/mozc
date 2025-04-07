@@ -49,7 +49,7 @@ def GenerateHeader(input_file, output_file):
         continue
       output.append(line)
 
-  with open(output_file, 'w', encoding='utf-8') as f:
+  with open(output_file, 'w', encoding='utf-8', newline='\n') as f:
     f.write('namespace {\n')
     # TODO(yuryu): Change to absl::string_view when we drop msvc 2017.
     f.write('const char *kTestSentences[] = {\n')
