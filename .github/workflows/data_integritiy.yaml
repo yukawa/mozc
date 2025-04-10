@@ -1,0 +1,147 @@
+name: Extra CI for data integrity
+
+# Run on push.
+on: push
+
+permissions: read-all
+
+# Prevent previous workflows from running.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mozc_data_on_linux:
+    # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: setup
+        run: |
+          sudo apt-get update
+
+      - name: build
+        working-directory: ./src
+        run: |
+          bazelisk build //data_manager/oss:mozc_dataset_for_oss --config release_build --config oss_linux
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mozc.data_linux
+          path: src/bazel-bin/data_manager/oss/mozc.data
+          if-no-files-found: error
+
+  mozc_data_on_mac:
+    # https://github.com/actions/runner-images/blob/main/images/macos/macos-14-arm64-Readme.md
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: build
+        working-directory: ./src
+        run: |
+          bazelisk build //data_manager/oss:mozc_dataset_for_oss --config release_build --config oss_macos
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mozc.data_mac
+          path: src/bazel-bin/data_manager/oss/mozc.data
+          if-no-files-found: error
+
+  mozc_data_on_windows:
+    # https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md
+    runs-on: windows-2022
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Try to restore update_deps cache
+        uses: actions/cache@v4
+        with:
+          path: src/third_party_cache
+          key: update_deps-${{ runner.os }}-${{ hashFiles('src/build_tools/update_deps.py') }}
+
+      - name: Install Dependencies
+        shell: cmd
+        working-directory: .\src
+        # This command uses src/third_party_cache as the download cache.
+        run: |
+          python build_tools/update_deps.py
+
+      - name: build
+        shell: cmd
+        working-directory: .\src
+        env:
+          ANDROID_NDK_HOME: ""
+        run: |
+          bazelisk build //data_manager/oss:mozc_dataset_for_oss --config release_build --config oss_windows
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mozc.data_windows
+          path: src/bazel-bin/data_manager/oss/mozc.data
+          if-no-files-found: error
+
+  compare_mozc_data:
+    # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    needs: [mozc_data_on_linux, mozc_data_on_mac, mozc_data_on_windows]
+
+    steps:
+      - name: download artifacts for Linux
+        uses: actions/download-artifact@v4
+        with:
+          name: mozc.data_linux
+          path: linux
+
+      - name: download artifacts for macOS
+        uses: actions/download-artifact@v4
+        with:
+          name: mozc.data_mac
+          path: mac
+
+      - name: download artifacts for Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: mozc.data_windows
+          path: windows
+
+      - name: compare
+        run: |
+          MOZC_DATA_LINUX_HASH=$(sha256sum linux/mozc.data | awk '{print $1}')
+          MOZC_DATA_MAC_HASH=$(sha256sum mac/mozc.data | awk '{print $1}')
+          MOZC_DATA_WINDOWS_HASH=$(sha256sum windows/mozc.data | awk '{print $1}')
+          echo "sha256(linux/mozc.data): ${MOZC_DATA_LINUX_HASH}"
+          echo "sha256(mac/mozc.data) ${MOZC_DATA_MAC_HASH}"
+          echo "sha256(windows/mozc.data) ${MOZC_DATA_WINDOWS_HASH}"
+          if [ "${MOZC_DATA_LINUX_HASH}" != "${MOZC_DATA_MAC_HASH}" ]; then
+            echo "Linux and macOS data files are different!"
+            exit 1
+          fi
+          if [ "${MOZC_DATA_LINUX_HASH}" != "${MOZC_DATA_WINDOWS_HASH}" ]; then
+            echo "Linux and Windows data files are different!"
+            exit 1
+          fi
+          if [ "${MOZC_DATA_MAC_HASH}" != "${MOZC_DATA_WINDOWS_HASH}" ]; then
+            echo "macOS and Windows data files are different!"
+            exit 1
+          fi
