@@ -283,6 +283,9 @@ def main():
 
   if options.output_tsv:
     with codecs.open(options.output_tsv, 'w', encoding='utf-8') as f:
+      # Sort keys first to be compatible with util.WriteZeroQueryData. Note that
+      # the enumeration order of collections.defaultdict is not guaranteed to be
+      # the same across Python versions and platforms.
       for key in sorted(merged_zero_query_dict):
         for value in merged_zero_query_dict[key]:
           f.write(key + '\t' + value.value + '\n')
