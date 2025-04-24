@@ -289,6 +289,7 @@ def ExpandMetaTarget(options, meta_target_name):
 
   if target_platform == 'Linux':
     targets = [
+        OSS_SRC_DIR + '/renderer/renderer.gyp:mozc_renderer',
         OSS_SRC_DIR + '/server/server.gyp:mozc_server',
         OSS_SRC_DIR + '/gui/gui.gyp:mozc_tool',
     ]

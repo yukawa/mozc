@@ -457,5 +457,64 @@
         },
       ],
     }],
+    ['OS=="linux"', {
+      'conditions': [
+        ['use_qt=="YES"', {
+          'targets': [
+            {
+              'target_name': 'gen_qt_files',
+              'type': 'none',
+              'variables': {
+                'subdir': 'qt',
+              },
+              'sources': [
+                '<(subdir)/qt_ipc_thread.h',
+                '<(subdir)/qt_server.h',
+              ],
+              'includes': [
+                '../gui/qt_moc.gypi',
+              ],
+            },
+            {
+              'target_name': 'mozc_renderer',
+              'product_name': 'mozc_renderer',
+              'type': 'executable',
+              'sources': [
+                '<(gen_out_dir)/qt/moc_qt_ipc_thread.cc',
+                '<(gen_out_dir)/qt/moc_qt_server.cc',
+                'qt/qt_ipc_server.cc',
+                'qt/qt_ipc_thread.cc',
+                'qt/qt_renderer_main.cc',
+                'qt/qt_server.cc',
+                'qt/qt_window_manager.cc',
+              ],
+              'dependencies': [
+                '<(mozc_oss_src_dir)/base/absl.gyp:absl_strings',
+                '<(mozc_oss_src_dir)/base/base.gyp:base',
+                '<(mozc_oss_src_dir)/client/client.gyp:client',
+                '<(mozc_oss_src_dir)/ipc/ipc.gyp:ipc',
+                '<(mozc_oss_src_dir)/protocol/protocol.gyp:commands_proto',
+                '<(mozc_oss_src_dir)/protocol/protocol.gyp:config_proto',
+                '<(mozc_oss_src_dir)/protocol/protocol.gyp:renderer_proto',
+                'gen_qt_files',
+                'init_mozc_renderer',
+                'renderer_style_handler',
+                'window_util',
+              ],
+              'includes': [
+                '../gui/qt_libraries.gypi',
+              ],
+            },
+          ],
+        }, {  # use_qt!="YES"
+          'targets': [
+            {
+              'target_name': 'mozc_renderer',
+              'type': 'none',
+            },
+          ],
+        }],
+      ],
+    }],
   ],
 }
