@@ -458,7 +458,6 @@ mozc_cc_library(
     hdrs = ["environ.h"],
     visibility = ["//:__subpackages__"],
     deps = [
-        ":singleton",
         "//base/strings:zstring_view",
     ],
 )
