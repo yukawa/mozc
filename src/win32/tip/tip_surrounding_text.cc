@@ -41,8 +41,10 @@
 #include <utility>
 
 #include "base/win32/com.h"
+#include "base/win32/hresultor.h"
 #include "base/win32/wide_char.h"
 #include "win32/base/imm_reconvert_string.h"
+#include "win32/tip/tip_compartment_util.h"
 #include "win32/tip/tip_composition_util.h"
 #include "win32/tip/tip_dll_module.h"
 #include "win32/tip/tip_range_util.h"
@@ -68,15 +70,9 @@ class SurroudingTextUpdater final : public TipComImplements<ITfEditSession> {
  private:
   STDMETHODIMP DoEditSession(TfEditCookie edit_cookie) override {
     HRESULT result = S_OK;
-    {
-      TF_STATUS status = {};
-      result = context_->GetStatus(&status);
-      if (FAILED(result)) {
-        return result;
-      }
-      result_.is_transitory =
-          ((status.dwStaticFlags & TF_SS_TRANSITORY) == TF_SS_TRANSITORY);
-    }
+
+    result_.from_imm32 = false;
+
     {
       wil::com_ptr_nothrow<ITfCompositionView> composition_view =
           TipCompositionUtil::GetCompositionView(context_.get(), edit_cookie);
@@ -219,8 +215,9 @@ class PrecedingTextDeleter final : public TipComImplements<ITfEditSession> {
   size_t num_characters_in_codepoint_;
 };
 
-bool PrepareForReconversionIMM32(ITfContext *context,
-                                 TipSurroundingTextInfo *info) {
+bool GetSurroundingTextImm32(ITfContext *context,
+                             ReconvertString::RequestType request_type,
+                             TipSurroundingTextInfo *info) {
   wil::com_ptr_nothrow<ITfContextView> context_view;
   if (FAILED(context->GetActiveView(&context_view))) {
     return false;
@@ -234,7 +231,7 @@ bool PrepareForReconversionIMM32(ITfContext *context,
   }
 
   UniqueReconvertString reconvert_string =
-      ReconvertString::Request(attached_window);
+      ReconvertString::Request(attached_window, request_type);
   if (!reconvert_string) {
     return false;
   }
@@ -243,8 +240,8 @@ bool PrepareForReconversionIMM32(ITfContext *context,
   if (!ss.has_value()) {
     return false;
   }
-  info->in_composition = false;
-  info->is_transitory = false;
+  info->in_composition = !ss->preceding_composition.empty() ||
+                         !ss->following_composition.empty();
   info->has_preceding_text = true;
   info->preceding_text.assign(ss->preceding_text.begin(),
                               ss->preceding_text.end());
@@ -254,8 +251,58 @@ bool PrepareForReconversionIMM32(ITfContext *context,
   info->has_following_text = true;
   info->following_text.assign(ss->following_text.begin(),
                               ss->following_text.end());
+  info->from_imm32 = true;
 
   return true;
+}
+
+// An undocumented GUID found with ITfCompartmentMgr::EnumGuid().
+// Looks like if its value is VT_I4 and 0x01 bit is set, then the correspinding
+// ITfDocumentMgr is for CUAS.
+// Extensively tested with various cases on Windows 10/11.
+// {A94C5FD2-C471-4031-9546-709C17300CB9}
+constinit static const GUID kCuasDocumentMgrFlagCompoartmentGuid = {
+    0xa94c5fd2,
+    0xc471,
+    0x4031,
+    {0x95, 0x46, 0x70, 0x9c, 0x17, 0x30, 0x0c, 0xb9}};
+
+bool IsCuasContext(ITfContext *context) {
+  if (context == nullptr) {
+    return false;
+  }
+
+  wil::com_ptr_nothrow<ITfDocumentMgr> document_mgr;
+  if (FAILED(context->GetDocumentMgr(&document_mgr))) {
+    return false;
+  }
+
+  HResultOr<wil::unique_variant> var =
+      TipCompartmentUtil::Get(document_mgr.get(),
+                              kCuasDocumentMgrFlagCompoartmentGuid);
+  if (!var.has_value()) {
+    return false;
+  }
+  switch (var->vt) {
+    case VT_I4:
+      return (var->intVal & 0x01) == 0x01;
+    case VT_UI4:
+      return (var->uintVal & 0x01) == 0x01;
+    default:
+      return false;
+  }
+}
+
+struct TipContextInfo {
+  wil::com_ptr_nothrow<ITfContext> target_context;
+  const bool is_cuas;
+};
+
+TipContextInfo GetContextInfo(ITfContext* context) {
+  wil::com_ptr_nothrow<ITfContext> target_context(
+      TipTransitoryExtension::ToParentContextIfExists(context));
+  const bool is_cuas = IsCuasContext(target_context.get());
+  return {.target_context = target_context, .is_cuas = is_cuas};
 }
 
 }  // namespace
@@ -267,10 +314,22 @@ bool TipSurroundingText::Get(TipTextService *text_service, ITfContext *context,
   }
   *info = TipSurroundingTextInfo();
 
+  auto context_info = GetContextInfo(context);
+
+  // CUAS-based transitory context associated with custom editor in general
+  // gives an empty surrounding text regardless of the actual state.
+  // To work around this limitation, here we try to fall back to IMM32-based
+  // IMR_DOCUMENTFEED approach.
+  if (context_info.is_cuas) {
+    // Legacy IMM32-based editors fall into this category.
+    return GetSurroundingTextImm32(context,
+                                   ReconvertString::RequestType::kDocumentFeed,
+                                   info);
+  }
+
   // Use Transitory Extensions when supported. Common controls provides
   // surrounding text via Transitory Extensions.
-  wil::com_ptr_nothrow<ITfContext> target_context(
-      TipTransitoryExtension::ToParentContextIfExists(context));
+  wil::com_ptr_nothrow<ITfContext> target_context(context_info.target_context);
 
   // When RequestEditSession fails, it does not maintain the reference count.
   // So we need to ensure that AddRef/Release should be called at least once
@@ -296,18 +355,13 @@ bool TipSurroundingText::Get(TipTextService *text_service, ITfContext *context,
 bool PrepareForReconversionTSF(TipTextService *text_service,
                                ITfContext *context,
                                TipSurroundingTextInfo *info) {
-  // Use Transitory Extensions when supported. Common controls provides
-  // surrounding text via Transitory Extensions.
-  wil::com_ptr_nothrow<ITfContext> target_context(
-      TipTransitoryExtension::ToParentContextIfExists(context));
-
   // When RequestEditSession fails, it does not maintain the reference count.
   // So we need to ensure that AddRef/Release should be called at least once
   // per object.
-  auto updater = MakeComPtr<SurroudingTextUpdater>(target_context, true);
+  auto updater = MakeComPtr<SurroudingTextUpdater>(context, true);
 
   HRESULT edit_session_result = S_OK;
-  const HRESULT hr = target_context->RequestEditSession(
+  const HRESULT hr = context->RequestEditSession(
       text_service->GetClientID(), updater.get(), TF_ES_SYNC | TF_ES_READWRITE,
       &edit_session_result);
   if (FAILED(hr)) {
@@ -332,15 +386,22 @@ bool TipSurroundingText::PrepareForReconversionFromIme(
   }
   *info = TipSurroundingTextInfo();
   *need_async_reconversion = false;
-  if (PrepareForReconversionTSF(text_service, context, info)) {
-    // Here we assume selection text info is valid iff |info->is_transitory| is
-    // false.
-    // TODO(yukawa): Investigate more reliable method to determine this.
-    if (!info->is_transitory) {
-      return true;
-    }
+
+  auto context_info = GetContextInfo(context);
+
+  // Use Transitory Extensions when supported. Common controls provides
+  // surrounding text via Transitory Extensions.
+  wil::com_ptr_nothrow<ITfContext> target_context(context_info.target_context);
+
+  // Here we assume selection text info is invalid if the context is CUAS-based.
+  if (!context_info.is_cuas &&
+      PrepareForReconversionTSF(text_service, target_context.get(), info)) {
+    return true;
   }
-  if (!PrepareForReconversionIMM32(context, info)) {
+  // OK to use the original context as it is used just to get HWND.
+  if (!GetSurroundingTextImm32(context,
+                               ReconvertString::RequestType::kReconvertString,
+                               info)) {
     return false;
   }
   // IMM32-like reconversion requires async edit session.
@@ -351,10 +412,14 @@ bool TipSurroundingText::PrepareForReconversionFromIme(
 bool TipSurroundingText::DeletePrecedingText(
     TipTextService *text_service, ITfContext *context,
     size_t num_characters_to_be_deleted_in_codepoint) {
+  auto context_info = GetContextInfo(context);
+  if (context_info.is_cuas) {
+    return false;
+  }
+
   // Use Transitory Extensions when supported. Common controls provides
   // surrounding text via Transitory Extensions.
-  wil::com_ptr_nothrow<ITfContext> target_context(
-      TipTransitoryExtension::ToParentContextIfExists(context));
+  wil::com_ptr_nothrow<ITfContext> target_context(context_info.target_context);
 
   // When RequestEditSession fails, it does not maintain the reference count.
   // So we need to ensure that AddRef/Release should be called at least once

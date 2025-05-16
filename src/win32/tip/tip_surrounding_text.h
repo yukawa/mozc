@@ -49,8 +49,8 @@ struct TipSurroundingTextInfo {
   bool has_preceding_text = false;
   bool has_selected_text = false;
   bool has_following_text = false;
-  bool is_transitory = false;   // context is a transitory context
   bool in_composition = false;  // context has a composition owned by Mozc.
+  bool from_imm32 = false;      // text is from WM_IME_REQUEST.
 };
 
 class TipSurroundingText {
