@@ -51,7 +51,6 @@
 #include "base/file_stream.h"
 #include "base/mmap.h"
 #include "base/port.h"
-#include "base/singleton.h"
 #include "base/strings/zstring_view.h"
 
 #ifdef _WIN32
@@ -87,28 +86,8 @@ constexpr char kFileDelimiter = '/';
 
 namespace mozc {
 namespace {
-class FileUtilImpl : public FileUtilInterface {
- public:
-  FileUtilImpl() = default;
-  ~FileUtilImpl() override = default;
 
-  absl::Status CreateDirectory(zstring_view path) const override;
-  absl::Status RemoveDirectory(zstring_view dirname) const override;
-  absl::Status Unlink(zstring_view filename) const override;
-  absl::Status FileExists(zstring_view filename) const override;
-  absl::Status DirectoryExists(zstring_view dirname) const override;
-  absl::Status CopyFile(zstring_view from, zstring_view to) const override;
-  absl::StatusOr<bool> IsEqualFile(zstring_view filename1,
-                                   zstring_view filename2) const override;
-  absl::StatusOr<bool> IsEquivalent(zstring_view filename1,
-                                    zstring_view filename2) const override;
-  absl::Status AtomicRename(zstring_view from, zstring_view to) const override;
-  absl::Status CreateHardLink(zstring_view from, zstring_view to) override;
-  absl::StatusOr<FileTimeStamp> GetModificationTime(
-      zstring_view filename) const override;
-};
-
-using FileUtilSingleton = SingletonMockable<FileUtilInterface, FileUtilImpl>;
+constinit static std::atomic<FileUtilInterface *> g_mock = nullptr;
 
 }  // namespace
 
@@ -190,10 +169,11 @@ absl::Status StripWritePreventingAttributesIfExists(zstring_view filename) {
 #endif  // _WIN32
 
 absl::Status FileUtil::CreateDirectory(zstring_view path) {
-  return FileUtilSingleton::Get()->CreateDirectory(path);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->CreateDirectory(path);
+  }
 
-absl::Status FileUtilImpl::CreateDirectory(zstring_view path) const {
 #if !defined(_WIN32)
   // On Windows, this check is skipped to avoid freeze of the host application.
   // This platform dependent behavior is a temporary solution to avoid
@@ -225,10 +205,11 @@ absl::Status FileUtilImpl::CreateDirectory(zstring_view path) const {
 }
 
 absl::Status FileUtil::RemoveDirectory(zstring_view dirname) {
-  return FileUtilSingleton::Get()->RemoveDirectory(dirname);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->RemoveDirectory(dirname);
+  }
 
-absl::Status FileUtilImpl::RemoveDirectory(zstring_view dirname) const {
 #ifdef _WIN32
   const std::wstring wide = win32::Utf8ToWide(dirname);
   if (wide.empty()) {
@@ -259,10 +240,11 @@ absl::Status FileUtil::RemoveDirectoryIfExists(zstring_view dirname) {
 }
 
 absl::Status FileUtil::Unlink(zstring_view filename) {
-  return FileUtilSingleton::Get()->Unlink(filename);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->Unlink(filename);
+  }
 
-absl::Status FileUtilImpl::Unlink(zstring_view filename) const {
 #ifdef _WIN32
   if (absl::Status s = StripWritePreventingAttributesIfExists(filename);
       !s.ok()) {
@@ -306,10 +288,11 @@ void FileUtil::UnlinkOrLogError(zstring_view filename) {
 }
 
 absl::Status FileUtil::FileExists(zstring_view filename) {
-  return FileUtilSingleton::Get()->FileExists(filename);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->FileExists(filename);
+  }
 
-absl::Status FileUtilImpl::FileExists(zstring_view filename) const {
 #ifdef _WIN32
   const std::wstring wide = win32::Utf8ToWide(filename);
   if (wide.empty()) {
@@ -327,10 +310,11 @@ absl::Status FileUtilImpl::FileExists(zstring_view filename) const {
 }
 
 absl::Status FileUtil::DirectoryExists(zstring_view dirname) {
-  return FileUtilSingleton::Get()->DirectoryExists(dirname);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->DirectoryExists(dirname);
+  }
 
-absl::Status FileUtilImpl::DirectoryExists(zstring_view dirname) const {
 #ifdef _WIN32
   const std::wstring wide = win32::Utf8ToWide(dirname);
   if (wide.empty()) {
@@ -387,10 +371,11 @@ bool FileUtil::HideFileWithExtraAttributes(zstring_view filename,
 #endif  // _WIN32
 
 absl::Status FileUtil::CopyFile(zstring_view from, zstring_view to) {
-  return FileUtilSingleton::Get()->CopyFile(from, to);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->CopyFile(from, to);
+  }
 
-absl::Status FileUtilImpl::CopyFile(zstring_view from, zstring_view to) const {
 #ifdef _WIN32
   const std::wstring wfrom = win32::Utf8ToWide(from);
   if (wfrom.empty()) {
@@ -440,11 +425,11 @@ absl::Status FileUtilImpl::CopyFile(zstring_view from, zstring_view to) const {
 
 absl::StatusOr<bool> FileUtil::IsEqualFile(zstring_view filename1,
                                            zstring_view filename2) {
-  return FileUtilSingleton::Get()->IsEqualFile(filename1, filename2);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->IsEqualFile(filename1, filename2);
+  }
 
-absl::StatusOr<bool> FileUtilImpl::IsEqualFile(zstring_view filename1,
-                                               zstring_view filename2) const {
   absl::StatusOr<Mmap> mmap1 = Mmap::Map(filename1, Mmap::READ_ONLY);
   if (!mmap1.ok()) {
     return std::move(mmap1).status();
@@ -458,11 +443,11 @@ absl::StatusOr<bool> FileUtilImpl::IsEqualFile(zstring_view filename1,
 
 absl::StatusOr<bool> FileUtil::IsEquivalent(zstring_view filename1,
                                             zstring_view filename2) {
-  return FileUtilSingleton::Get()->IsEquivalent(filename1, filename2);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->IsEquivalent(filename1, filename2);
+  }
 
-absl::StatusOr<bool> FileUtilImpl::IsEquivalent(zstring_view filename1,
-                                                zstring_view filename2) const {
   // If either of filename1 or filename2 does not exist, an error is returned.
   // Because filesystem::equivalent on some environments returns false instead,
   // that case is checked here to keep the consistency.
@@ -490,11 +475,11 @@ absl::StatusOr<bool> FileUtilImpl::IsEquivalent(zstring_view filename1,
 }
 
 absl::Status FileUtil::AtomicRename(zstring_view from, zstring_view to) {
-  return FileUtilSingleton::Get()->AtomicRename(from, to);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->AtomicRename(from, to);
+  }
 
-absl::Status FileUtilImpl::AtomicRename(zstring_view from,
-                                        zstring_view to) const {
 #ifdef _WIN32
   const std::wstring fromw = win32::Utf8ToWide(from);
   const std::wstring tow = win32::Utf8ToWide(to);
@@ -538,10 +523,11 @@ absl::Status FileUtilImpl::AtomicRename(zstring_view from,
 }
 
 absl::Status FileUtil::CreateHardLink(zstring_view from, zstring_view to) {
-  return FileUtilSingleton::Get()->CreateHardLink(from, to);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->CreateHardLink(from, to);
+  }
 
-absl::Status FileUtilImpl::CreateHardLink(zstring_view from, zstring_view to) {
 #ifdef __APPLE__
   return absl::UnimplementedError(
       "std::filesystem is only available on macOS 10.15, iOS 13.0, or later.");
@@ -607,11 +593,11 @@ std::string FileUtil::NormalizeDirectorySeparator(zstring_view path) {
 
 absl::StatusOr<FileTimeStamp> FileUtil::GetModificationTime(
     zstring_view filename) {
-  return FileUtilSingleton::Get()->GetModificationTime(filename);
-}
+  if (FileUtilInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->GetModificationTime(filename);
+  }
 
-absl::StatusOr<FileTimeStamp> FileUtilImpl::GetModificationTime(
-    zstring_view filename) const {
 #if defined(_WIN32)
   const std::wstring wide = win32::Utf8ToWide(filename);
   if (wide.empty()) {
@@ -690,7 +676,7 @@ absl::Status FileUtil::SetContents(zstring_view filename,
 }
 
 void FileUtil::SetMockForUnitTest(FileUtilInterface *mock) {
-  FileUtilSingleton::SetMock(mock);
+  g_mock.store(mock, std::memory_order_release);
 }
 
 }  // namespace mozc
