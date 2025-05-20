@@ -95,38 +95,6 @@ class Singleton {
   constinit static inline T *instance_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 
-// SingletonMockable class.
-// Usage: (quote from clock.cc)
-//
-//   using ClockSingleton = SingletonMockable<ClockInterface, ClockImpl>;
-//
-//   uint64_t Clock::GetTime() {
-//     return ClockSingleton::Get()->GetTime();
-//   }
-//
-//   void Clock::SetClockForUnitTest(ClockInterface *clock_mock) {
-//    ClockSingleton::SetMock(clock_mock);
-//   }
-template <class Interface, class Impl>
-class SingletonMockable {
- public:
-  static Interface *Get() {
-    if (Interface *mock = mock_.load(std::memory_order_acquire);
-        mock != nullptr) {
-      return mock;
-    }
-    static absl::NoDestructor<Impl> impl;
-    return impl.get();
-  }
-
-  static void SetMock(Interface *mock) {
-    mock_.store(mock, std::memory_order_release);
-  }
-
- private:
-  constinit static inline std::atomic<Interface *> mock_ = nullptr;
-};
-
 }  // namespace mozc
 
 #endif  // MOZC_BASE_SINGLETON_H_
