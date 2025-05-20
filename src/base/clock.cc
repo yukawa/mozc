@@ -31,7 +31,8 @@
 
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "base/singleton.h"
+
+#include <atomic>
 
 #if defined(OS_CHROMEOS) || defined(_WIN32)
 #include <ctime>
@@ -39,6 +40,8 @@
 
 namespace mozc {
 namespace {
+
+constinit static std::atomic<ClockInterface *> g_mock = nullptr;
 
 absl::TimeZone GetLocalTimeZone() {
 #if defined(OS_CHROMEOS) || defined(_WIN32)
@@ -59,30 +62,26 @@ absl::TimeZone GetLocalTimeZone() {
 #endif  // defined(OS_CHROMEOS) || defined(_WIN32)
 }
 
-class ClockImpl : public ClockInterface {
- public:
-  ClockImpl() = default;
-  ~ClockImpl() override = default;
-
-  absl::Time GetAbslTime() override { return absl::Now(); }
-
-  absl::TimeZone GetTimeZone() override { return timezone_; }
-
- private:
-  const absl::TimeZone timezone_ = GetLocalTimeZone();
-};
 }  // namespace
 
-using ClockSingleton = SingletonMockable<ClockInterface, ClockImpl>;
-
-absl::Time Clock::GetAbslTime() { return ClockSingleton::Get()->GetAbslTime(); }
+absl::Time Clock::GetAbslTime() {
+  if (ClockInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->GetAbslTime();
+  }
+  return absl::Now();
+}
 
 absl::TimeZone Clock::GetTimeZone() {
-  return ClockSingleton::Get()->GetTimeZone();
+  if (ClockInterface *mock = g_mock.load(std::memory_order_acquire);
+      mock != nullptr) {
+    return mock->GetTimeZone();
+  }
+  return GetLocalTimeZone();
 }
 
 void Clock::SetClockForUnitTest(ClockInterface *clock) {
-  ClockSingleton::SetMock(clock);
+  g_mock.store(clock, std::memory_order_release);
 }
 
 }  // namespace mozc
