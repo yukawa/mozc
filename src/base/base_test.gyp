@@ -193,6 +193,19 @@
       },
     },
     {
+      'target_name': 'strings_safe_global_string_test',
+      'type': 'executable',
+      'sources': [
+        'strings/safe_global_string_test.cc',
+      ],
+      'dependencies': [
+        '<(mozc_oss_src_dir)/testing/testing.gyp:gtest_main',
+      ],
+      'variables': {
+        'test_size': 'small',
+      },
+    },
+    {
       'target_name': 'strings_unicode_test',
       'type': 'executable',
       'sources': [
@@ -474,6 +487,7 @@
         'obfuscator_support_test',
         'serialized_string_array_test',
         'strings_japanese_test',
+        'strings_safe_global_string_test',
         'strings_unicode_test',
         'system_util_test',
         'trie_test',
