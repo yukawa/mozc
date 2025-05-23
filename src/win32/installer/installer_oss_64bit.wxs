@@ -38,6 +38,13 @@
 <?define QtWidgetsFilename="Qt$(var.QtVer)Widgets.dll" ?>
 <?define QtWidgetsdFilename="Qt$(var.QtVer)Widgetsd.dll" ?>
 
+<?ifndef MozcTIPForwarderArm64X ?>
+  <?define MozcTIPForwarderArm64X="" ?>
+<?endif?>
+<?ifndef MozcTIPArm64 ?>
+  <?define MozcTIPArm64="" ?>
+<?endif?>
+
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
   <!--
@@ -91,7 +98,13 @@
     </UI>
 
     <Feature Id="MozcInstall" Title="Mozc" Level="1">
+      <?if $(var.MozcTIPForwarderArm64X) != "" ?>
+        <ComponentRef Id="MozcTIPForwarderArm64X" />
+      <?endif?>
       <ComponentRef Id="MozcTIPForwarderX64" />
+      <?if $(var.MozcTIPArm64) != "" ?>
+        <ComponentRef Id="MozcTIPArm64" />
+      <?endif?>
       <ComponentRef Id="MozcTIPx86" />
       <ComponentRef Id="MozcTIPx64" />
       <ComponentRef Id="MozcBroker" />
@@ -219,10 +232,18 @@
           <ServiceControl Id="StopMozcCacheService" Name="MozcCacheService" Stop="both" Remove="uninstall" Wait="yes" />
         </Component>
         <Component Id="MozcTIPForwarderX64" Permanent="no" Bitness="always64">
-          <File Id="mozc_tip_forwarder_x64.dll" Name="mozc_tip_forwarder_x64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPForwarderX64)" Vital="yes">
-            <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
-          </File>
+          <File Id="mozc_tip_forwarder_x64.dll" Name="mozc_tip_forwarder_x64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPForwarderX64)" Vital="yes" />
         </Component>
+        <?if $(var.MozcTIPForwarderArm64X) != "" ?>
+          <Component Id="MozcTIPForwarderArm64X" Permanent="no" Bitness="always64">
+            <File Id="mozc_tip_forwarder_arm64x.dll" Name="mozc_tip_forwarder_arm64x.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPForwarderArm64X)" Vital="yes" />
+          </Component>
+        <?endif?>
+        <?if $(var.MozcTIPArm64) != "" ?>
+          <Component Id="MozcTIPArm64" Permanent="no" Bitness="always64">
+            <File Id="mozc_tip_arm64.dll" Name="mozc_tip_arm64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPArm64Path)" Vital="yes" />
+          </Component>
+        <?endif?>
         <Component Id="MozcTIPx86" Permanent="no" Bitness="always32">
           <File Id="mozc_tip_x86.dll" Name="mozc_tip_x86.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPx86Path)" Vital="yes">
             <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
