@@ -33,9 +33,6 @@ MODULE.bazel.lock
 # Visual Studio per-project settings
 /.vs/
 
-# VSCode per-project settings
-.vscode/
-
 # Temporary working dirs
 /oss
 /src-*

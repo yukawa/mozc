@@ -1,0 +1,13 @@
+{
+  "files.eol": "\n",
+  "explorer.excludeGitIgnore": true,
+  "[cpp][python]": {
+    "editor.rulers": [80],
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true
+  },
+  "[tsv]": {
+    "editor.insertSpaces": false,
+    "editor.wordWrap": "off"
+  }
+}
