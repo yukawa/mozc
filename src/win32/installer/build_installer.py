@@ -86,8 +86,9 @@ def run_wix4(args) -> None:
   document_dir = credit_file.parent
   qt_dir = pathlib.Path(args.qt_core_dll).parent.parent.resolve()
   icon_path = pathlib.Path(args.icon_path).resolve()
-  mozc_tip32 = pathlib.Path(args.mozc_tip32).resolve()
-  mozc_tip64 = pathlib.Path(args.mozc_tip64).resolve()
+  mozc_tip_x86 = pathlib.Path(args.mozc_tip_x86).resolve()
+  mozc_tip_x64 = pathlib.Path(args.mozc_tip_x64).resolve()
+  mozc_tip_x64_pdb = mozc_tip_x64.with_suffix('.pdb')
   mozc_broker = pathlib.Path(args.mozc_broker).resolve()
   mozc_server = pathlib.Path(args.mozc_server).resolve()
   mozc_cache_service = pathlib.Path(args.mozc_cache_service).resolve()
@@ -129,8 +130,8 @@ def run_wix4(args) -> None:
       '-define', f'ReleaseRedistCrt32Dir={redist_x86}',
       '-define', f'ReleaseRedistCrt64Dir={redist_x64}',
       '-define', f'AddRemoveProgramIconPath={icon_path}',
-      '-define', f'MozcTIP32Path={mozc_tip32}',
-      '-define', f'MozcTIP64Path={mozc_tip64}',
+      '-define', f'MozcTIPx86Path={mozc_tip_x86}',
+      '-define', f'MozcTIPx64Path={mozc_tip_x64}',
       '-define', f'MozcBroker64Path={mozc_broker}',
       '-define', f'MozcServer64Path={mozc_server}',
       '-define', f'MozcCacheService64Path={mozc_cache_service}',
@@ -155,9 +156,9 @@ def main():
   parser.add_argument('--mozc_server', type=str)
   parser.add_argument('--mozc_broker', type=str)
   parser.add_argument('--mozc_cache_service', type=str)
-  parser.add_argument('--mozc_tip32', type=str)
-  parser.add_argument('--mozc_tip64', type=str)
-  parser.add_argument('--mozc_tip64_pdb', type=str)
+  parser.add_argument('--mozc_tip_x86', type=str)
+  parser.add_argument('--mozc_tip_x64', type=str)
+  parser.add_argument('--mozc_tip_x64_pdb', type=str)
   parser.add_argument('--custom_action', type=str)
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)

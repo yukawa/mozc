@@ -73,36 +73,53 @@ END
 // Version
 //
 
-#ifdef _WIN64
+#if defined(_ARM64_)
   #ifndef MOZC_RES_INTERNAL_NAME
     #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
-      #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaTIP64"
+      #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaTIP_arm64"
     #elif defined(MOZC_BUILD)
-      #define MOZC_RES_INTERNAL_NAME "mozc_tip64"
+      #define MOZC_RES_INTERNAL_NAME "mozc_tip_arm64"
     #endif
   #endif
   #ifndef MOZC_RES_ORIGINAL_FILENAME
     #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
-      #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaTIP64.dll"
+      #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaTIP_arm64.dll"
     #elif defined(MOZC_BUILD)
-      #define MOZC_RES_ORIGINAL_FILENAME "mozc_tip64.dll"
+      #define MOZC_RES_ORIGINAL_FILENAME "mozc_tip_arm64.dll"
+    #endif
+  #endif
+#elif defined(_AMD64_)
+  #ifndef MOZC_RES_INTERNAL_NAME
+    #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
+      #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaTIP_x64"
+    #elif defined(MOZC_BUILD)
+      #define MOZC_RES_INTERNAL_NAME "mozc_tip_x64"
+    #endif
+  #endif
+  #ifndef MOZC_RES_ORIGINAL_FILENAME
+    #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
+      #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaTIP_x64.dll"
+    #elif defined(MOZC_BUILD)
+      #define MOZC_RES_ORIGINAL_FILENAME "mozc_tip_x64.dll"
+    #endif
+  #endif
+#elif defined(_X86_)
+  #ifndef MOZC_RES_INTERNAL_NAME
+    #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
+      #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaTIP_x86"
+    #elif defined(MOZC_BUILD)
+      #define MOZC_RES_INTERNAL_NAME "mozc_tip_x86"
+    #endif
+  #endif
+  #ifndef MOZC_RES_ORIGINAL_FILENAME
+    #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
+      #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaTIP_x86.dll"
+    #elif defined(MOZC_BUILD)
+      #define MOZC_RES_ORIGINAL_FILENAME "mozc_tip_x86.dll"
     #endif
   #endif
 #else
-  #ifndef MOZC_RES_INTERNAL_NAME
-    #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
-      #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaTIP32"
-    #elif defined(MOZC_BUILD)
-      #define MOZC_RES_INTERNAL_NAME "mozc_tip32"
-    #endif
-  #endif
-  #ifndef MOZC_RES_ORIGINAL_FILENAME
-    #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
-      #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaTIP32.dll"
-    #elif defined(MOZC_BUILD)
-      #define MOZC_RES_ORIGINAL_FILENAME "mozc_tip32.dll"
-    #endif
-  #endif
+#error "Unsupported platform"
 #endif
 #ifndef MOZC_RES_FILE_DESCRIPTION
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
