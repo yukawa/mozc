@@ -91,6 +91,7 @@
     </UI>
 
     <Feature Id="MozcInstall" Title="Mozc" Level="1">
+      <ComponentRef Id="MozcTIPForwarderX64" />
       <ComponentRef Id="MozcTIPx86" />
       <ComponentRef Id="MozcTIPx64" />
       <ComponentRef Id="MozcBroker" />
@@ -217,15 +218,18 @@
           -->
           <ServiceControl Id="StopMozcCacheService" Name="MozcCacheService" Stop="both" Remove="uninstall" Wait="yes" />
         </Component>
+        <Component Id="MozcTIPForwarderX64" Permanent="no" Bitness="always64">
+          <File Id="mozc_tip_forwarder_x64.dll" Name="mozc_tip_forwarder_x64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPForwarderX64)" Vital="yes">
+            <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
+          </File>
+        </Component>
         <Component Id="MozcTIPx86" Permanent="no" Bitness="always32">
           <File Id="mozc_tip_x86.dll" Name="mozc_tip_x86.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPx86Path)" Vital="yes">
             <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
           </File>
         </Component>
         <Component Id="MozcTIPx64" Permanent="no" Bitness="always64">
-          <File Id="mozc_tip_x64.dll" Name="mozc_tip_x64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPx64Path)" Vital="yes">
-            <Class Context="InprocServer32" ThreadingModel="apartment" Description="Mozc" Id="10A67BC8-22FA-4A59-90DC-2546652C56BF" />
-          </File>
+          <File Id="mozc_tip_x64.dll" Name="mozc_tip_x64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIPx64Path)" Vital="yes" />
         </Component>
         <Component Id="MozcBroker" Permanent="no">
           <File Id="mozc_broker.exe" Name="mozc_broker.exe" DiskId="1" Checksum="yes" Source="$(var.MozcBroker64Path)" Vital="yes" />
