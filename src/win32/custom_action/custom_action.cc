@@ -449,15 +449,22 @@ UINT __stdcall RegisterTIP(MSIHANDLE msi_handle) {
   DEBUG_BREAK_FOR_DEBUGGER();
   mozc::ScopedCOMInitializer com_initializer;
 
-#if defined(_M_X64)
   const std::wstring &path = GetMozcComponentPath(mozc::kMozcTIP64);
-#elif defined(_M_IX86)
-  const std::wstring &path = GetMozcComponentPath(mozc::kMozcTIP32);
-#else  // _M_X64, _M_IX86
-#error "Unsupported CPU architecture"
-#endif  // _M_X64, _M_IX86, and others
-  HRESULT result =
-      mozc::win32::TsfRegistrar::RegisterProfiles(path.c_str(), path.length());
+  HRESULT result = S_OK;
+
+  // Unlike 32-bit TIP DLL, which is always x86, the expected 64-bit TIP DLL
+  // can be x64 or ARM64X depending on the target environment. This is why
+  // only 64-bit TIP DLL is dynamically registered here.
+  result = mozc::win32::TsfRegistrar::RegisterCOMServer(path.c_str(),
+                                                        path.length());
+  if (FAILED(result)) {
+    LOG_ERROR_FOR_OMAHA();
+    UnregisterTIP(msi_handle);
+    return ERROR_INSTALL_FAILURE;
+  }
+
+  result = mozc::win32::TsfRegistrar::RegisterProfiles(path.c_str(),
+                                                       path.length());
   if (FAILED(result)) {
     LOG_ERROR_FOR_OMAHA();
     UnregisterTIP(msi_handle);
@@ -487,6 +494,10 @@ UINT __stdcall UnregisterTIP(MSIHANDLE msi_handle) {
   mozc::win32::TsfRegistrar::UnregisterCategories();
   mozc::win32::TsfRegistrar::UnregisterProfiles();
 
+  // Unlike 32-bit TIP DLL, which is always x86, the expected 64-bit TIP DLL
+  // can be x64 or ARM64X depending on the target environment. This is why
+  // only 64-bit TIP DLL is dynamically unregistered here.
+  mozc::win32::TsfRegistrar::UnregisterCOMServer();
   return ERROR_SUCCESS;
 }
 
