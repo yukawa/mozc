@@ -453,6 +453,7 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":display_name_resource_h",
+        "//base/strings:zstring_view",
     ],
 )
 
@@ -466,9 +467,13 @@ mozc_cc_library(
         ":display_name_resource_h",
         ":tsf_profile",
         "//base:const",
+        "//base/strings:zstring_view",
+        "//base:system_util",
         "//base/win32:com",
         "//base/win32:wide_char",
+        "//bazel/win32:ktmw32",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
     ],
 )

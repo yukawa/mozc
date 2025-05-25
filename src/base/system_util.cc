@@ -408,11 +408,14 @@ constexpr wchar_t kMozcTipClsid[] =
     L"\\InprocServer32";
 
 std::string GetMozcInstallDirFromRegistry() {
-  // TSF requires the path of "mozc_tip64.dll" to be registered in the registry,
+  // TSF requires the path of "mozc_tip32.dll" to be registered in the registry,
   // which tells us Mozc's installation directory.
+  // Note that we use "mozc_tip32.dll" because 64-bit TIP is dynamically
+  // registered by Custom Actions in late installation phase to support ARM64
+  // environment.
   HKEY key = nullptr;
   LSTATUS result =::RegOpenKeyExW(
-      HKEY_LOCAL_MACHINE, kMozcTipClsid, 0, KEY_READ | KEY_WOW64_64KEY, &key);
+      HKEY_LOCAL_MACHINE, kMozcTipClsid, 0, KEY_READ | KEY_WOW64_32KEY, &key);
   if (result != ERROR_SUCCESS) {
     return "";
   }

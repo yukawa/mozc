@@ -32,6 +32,7 @@
 
 #include <windows.h>
 
+#include "base/strings/zstring_view.h"
 
 namespace mozc {
 namespace win32 {
@@ -42,6 +43,7 @@ class TsfProfile {
   TsfProfile(const TsfProfile &) = delete;
   TsfProfile &operator=(const TsfProfile &) = delete;
   static const GUID &GetTextServiceGuid();
+  static zwstring_view GetTextServiceGuidStr();
   static const GUID &GetProfileGuid();
   static LANGID GetLangId();
   static int GetIconIndex();

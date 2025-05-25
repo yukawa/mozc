@@ -29,6 +29,7 @@
 
 #include "win32/base/tsf_profile.h"
 
+#include "base/strings/zstring_view.h"
 #include "win32/base/display_name_resource.h"
 
 namespace mozc {
@@ -45,7 +46,10 @@ static const GUID kGoogleJapaneseInputTextService = {
     0x47ea,
     {0xad, 0x16, 0x9c, 0x4e, 0xb1, 0x60, 0xec, 0x3c}};
 
-// {773EB24E-CA1D-4B1B-B420-FA985BB0B80D}
+constinit ::mozc::zwstring_view kGoogleJapaneseInputTextServiceGuidStr =
+    L"{D5A86FD5-5308-47EA-AD16-9C4EB160EC3C}";
+
+    // {773EB24E-CA1D-4B1B-B420-FA985BB0B80D}
 static const GUID kGoogleJapaneseInputProfile = {
     0x773eb24e,
     0xca1d,
@@ -60,6 +64,9 @@ static const GUID kMozcTextService = {
     0x22fa,
     0x4a59,
     {0x90, 0xdc, 0x25, 0x46, 0x65, 0x2c, 0x56, 0xbf}};
+
+constinit ::mozc::zwstring_view kMozcTextServiceGuidStr =
+    L"{10A67BC8-22FA-4A59-90DC-2546652C56BF}";
 
 // {186F700C-71CF-43FE-A00E-AACB1D9E6D3D}
 static const GUID kMozcProfile = {
@@ -80,6 +87,14 @@ const GUID &TsfProfile::GetTextServiceGuid() {
   return kGoogleJapaneseInputTextService;
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
   return kMozcTextService;
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD
+}
+
+zwstring_view TsfProfile::GetTextServiceGuidStr() {
+#ifdef GOOGLE_JAPANESE_INPUT_BUILD
+  return kGoogleJapaneseInputTextServiceGuidStr;
+#else   // GOOGLE_JAPANESE_INPUT_BUILD
+  return kMozcTextServiceGuidStr;
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 }
 

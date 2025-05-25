@@ -42,9 +42,15 @@ class TsfRegistrar {
   TsfRegistrar(const TsfRegistrar &) = delete;
   TsfRegistrar &operator=(const TsfRegistrar &) = delete;
 
+  // Registers 64bit TIP COM server.
+  static HRESULT Register64bitCOMServer();
+
+  // Unregisters 64bit TIP COM server.
+  static void Unregister64bitCOMServer();
+
   // Registers this COM server to the profile store for input processors.
   // The caller is responsible for initializing COM before call this function.
-  static HRESULT RegisterProfiles(const wchar_t *path, DWORD path_length);
+  static HRESULT RegisterProfiles();
 
   // Unregisters this COM server from the text service framework.
   // The caller is responsible for initializing COM before call this function.

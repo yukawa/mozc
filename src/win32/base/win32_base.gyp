@@ -112,6 +112,15 @@
             'input_dll_import_lib',
             'msctf_dll_import_lib',
           ],
+          'link_settings': {
+            'msvs_settings': {
+              'VCLinkerTool': {
+                'AdditionalDependencies': [
+                  'KtmW32.lib',  # used in 'tsf_registrar.cc'
+                ],
+              },
+            },
+          },
         },
         {
           'target_name': 'imframework_util_test',
