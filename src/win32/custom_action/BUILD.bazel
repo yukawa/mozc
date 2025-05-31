@@ -34,6 +34,13 @@ load(
     "mozc_win32_resource_from_template",
 )
 
+config_setting(
+    name = "enable_win_arm64_support",
+    flag_values = {
+        "//:mozc_support_win_arm64": "True",
+    },
+)
+
 mozc_win32_cc_prod_binary(
     name = "custom_action",
     srcs = [
@@ -41,6 +48,10 @@ mozc_win32_cc_prod_binary(
         "custom_action.h",
         "resource.h",
     ],
+    defines = select({
+        ":enable_win_arm64_support": ["MOZC_ENABLE_WIN_ARM64_SUPPORT"],
+        "//conditions:default": [],
+    }),
     executable_name_map = {
         "Mozc": "mozc_installer_helper.dll",
         "GoogleJapaneseInput": "GoogleIMEJaInstallerHelper.dll",

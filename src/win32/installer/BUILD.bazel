@@ -48,6 +48,38 @@ mozc_py_binary(
     ],
 )
 
+mozc_py_binary(
+    name = "build_tip_forwarder_dll",
+    srcs = ["build_tip_forwarder_dll.py"],
+    test_lib = False,
+    deps = [
+        "//build_tools:mozc_version_lib",
+        "//build_tools:vs_util",
+    ],
+)
+
+_TIP_FORWARDER_ARM64X_FILE = "mozc_tip64x.dll" if BRANDING == "Mozc" else "GoogleIMEJaTIP64X.msi"
+
+genrule(
+    name = "mozc_tip64x",
+    srcs = [
+        "//base:mozc_version_txt",
+    ],
+    outs = [_TIP_FORWARDER_ARM64X_FILE],
+    cmd = " ".join([
+        "$(location :build_tip_forwarder_dll)",
+        "--output=$@",
+        "--version_file=$(location //base:mozc_version_txt)",
+        "--host=x64",  # TODO: support arm64 host
+        "--branding=" + BRANDING,
+    ]),
+    target_compatible_with = _TARGET_COMPATIBLE_WITH,
+    tools = [
+        ":build_tip_forwarder_dll",
+    ],
+    visibility = ["//:__subpackages__"],
+)
+
 exports_files([
     "installer_64bit.wxs",
     "installer_oss_64bit.wxs",
@@ -59,6 +91,23 @@ config_setting(
         "compilation_mode": "dbg",
     },
     visibility = ["//visibility:private"],
+)
+
+config_setting(
+    name = "enable_win_arm64_support",
+    flag_values = {
+        "//:mozc_support_win_arm64": "True",
+    },
+)
+
+config_setting(
+    name = "x86_64_build",
+    values = {"cpu": "x86_64"},
+)
+
+config_setting(
+    name = "arm64_build",
+    values = {"cpu": "arm64"},
 )
 
 _WXS_FILE = ":installer_oss_64bit.wxs" if BRANDING == "Mozc" else ":installer_64bit.wxs"
@@ -82,7 +131,13 @@ genrule(
         "//data/installer:credits_en.html",
         "@qt_win//:bin/Qt6Core.dll",
         "@wix//:wix.exe",
-    ],
+    ] + select({
+        ":enable_win_arm64_support": [
+            ":mozc_tip64x",
+            "//win32/tip:mozc_tip64arm",
+        ],
+        "//conditions:default": [],
+    }),
     outs = [_MSI_FILE],
     cmd = " ".join([
         "$(location :build_installer)",
@@ -103,7 +158,17 @@ genrule(
         "--wix_path=$(location @wix//:wix.exe)",
         "--branding=" + BRANDING,
     ]) + select({
+        ":enable_win_arm64_support": " " + " ".join([
+            "--mozc_tip64x=$(location :mozc_tip64x)",
+            "--mozc_tip64arm=$(location //win32/tip:mozc_tip64arm)",
+        ]),
+        "//conditions:default": "",
+    }) + select({
         ":debug_build": " --debug_build",
+        "//conditions:default": "",
+    }) + select({
+        ":x86_64_build": " --arch=x64",
+        ":arm64_build": " --arch=arm64",
         "//conditions:default": "",
     }),
     target_compatible_with = _TARGET_COMPATIBLE_WITH,

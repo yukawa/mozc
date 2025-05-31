@@ -35,6 +35,10 @@
 #include <msiquery.h>
 // clang-format on
 
+#if defined(MOZC_ENABLE_WIN_ARM64_SUPPORT)
+#include <wow64apiset.h>
+#endif  // defined(MOZC_ENABLE_WIN_ARM64_SUPPORT)
+
 #undef StrCat  // NOLINT: TODO: triggers clang-tidy, defined by windows.h.
 
 #include <cstdarg>
@@ -448,14 +452,34 @@ UINT __stdcall WriteApValueRollback(MSIHANDLE msi_handle) {
 UINT __stdcall RegisterTIP(MSIHANDLE msi_handle) {
   DEBUG_BREAK_FOR_DEBUGGER();
   mozc::ScopedCOMInitializer com_initializer;
+
   HRESULT result = S_OK;
 
-  // Unlike 32-bit TIP DLL, which is always x86, the expected 64-bit TIP DLL
-  // can be x64 or ARM64X depending on the target environment. This is why
-  // only 64-bit TIP DLL is dynamically registered here.
-  const std::wstring &path = GetMozcComponentPath(mozc::kMozcTIP64);
-  result = mozc::win32::TsfRegistrar::RegisterCOMServer(path.c_str(),
-                                                        path.length());
+  // MOZC_ENABLE_WIN_ARM64_SUPPORT is conditionally defined in BUILD.bazel
+#if defined(MOZC_ENABLE_WIN_ARM64_SUPPORT)
+  // |IsWow64Process2| is added in Windows 10 1709 / Windows Server 1709. Let's
+  // check if the API is available before calling it.
+  // TODO: Directly call |IsWow64Process2| after we stop supporting Windows 10.
+  USHORT process_machine = IMAGE_FILE_MACHINE_UNKNOWN;
+  USHORT native_machine = IMAGE_FILE_MACHINE_UNKNOWN;
+  auto IsWow64Process2Func = reinterpret_cast<decltype(&::IsWow64Process2)>(
+      ::GetProcAddress(::GetModuleHandleA("kernel32.dll"), "IsWow64Process2"));
+  if (IsWow64Process2Func != nullptr) [[likely]] {
+    result = IsWow64Process2Func(::GetCurrentProcess(), &process_machine,
+                                 &native_machine);
+  } else {
+    result = E_NOTIMPL;
+  }
+  const bool is_arm64_machine =
+      SUCCEEDED(result) && native_machine == IMAGE_FILE_MACHINE_ARM64;
+  const std::wstring& tip64_path = is_arm64_machine
+      ? GetMozcComponentPath(mozc::kMozcTIP64X)
+      : GetMozcComponentPath(mozc::kMozcTIP64);
+#else   // !defined(MOZC_ENABLE_WIN_ARM64_SUPPORT)
+  const std::wstring& tip64_path = GetMozcComponentPath(mozc::kMozcTIP64);
+#endif  // defined(MOZC_ENABLE_WIN_ARM64_SUPPORT)
+  result = mozc::win32::TsfRegistrar::RegisterCOMServer(tip64_path.c_str(),
+                                                        tip64_path.length());
   if (FAILED(result)) {
     LOG_ERROR_FOR_OMAHA();
     UnregisterTIP(msi_handle);
