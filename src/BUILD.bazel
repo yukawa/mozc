@@ -31,6 +31,7 @@
 #   Declaration of package_group for visibility managing.
 
 load("@bazel_skylib//lib:selects.bzl", "selects")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load(
     "//:build_defs.bzl",
     "mozc_select",
@@ -210,6 +211,11 @@ cc_library(
         ":dev_channel": ["CHANNEL_DEV=1"],
         "//conditions:default": [],
     }),
+)
+
+bool_flag(
+    name = "mozc_support_win_arm64",
+    build_setting_default = False,
 )
 
 bzl_library(
