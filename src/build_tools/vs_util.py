@@ -30,12 +30,107 @@
 
 """A helper script to use Visual Studio."""
 
+import ctypes
 import json
 import os
 import pathlib
+import platform
 import subprocess
 import sys
-from typing import Union
+from typing import Optional, Union
+
+
+def _get_win_machine_arch_with_api() -> Optional[str]:
+    """Get the machine architecture on Windows with `IsWow64Process2` API.
+
+    This function uses the `IsWow64Process2` Win32 API to determine the host
+    CPU architecture. Note that the API is available starting from
+    Windows 10 version 1709 (build 16299).
+
+    Returns:
+        str: The host architecture, e.g., 'X86', 'AMD64', 'ARM64', or None if
+        the architecture cannot be determined or if the platform is not
+        Windows.
+    """
+    kernel32 = ctypes.windll.kernel32
+    IsWow64Process2 = kernel32.IsWow64Process2
+    if not IsWow64Process2:
+        # IsWow64Process2 is available starting from Windows 10 version 1709
+        return None
+
+    process_machine = ctypes.c_ushort()
+    native_machine = ctypes.c_ushort()
+    result = IsWow64Process2(
+        ctypes.c_void_p(kernel32.GetCurrentProcess()),
+        ctypes.byref(process_machine),
+        ctypes.byref(native_machine)
+    )
+
+    if not result:
+        raise None
+
+    # Use native_machine for host architecture
+    return {
+        0x014c: 'X86',
+        0x8664: 'AMD64',
+        0xAA64: 'ARM64',
+    }.get(native_machine.value, None)
+
+
+def get_win_machine_arch() -> Optional[str]:
+    """Get the machine architecture on Windows in a reliable way.
+
+    On CPython 3.11.* or prior, `platform.uname().machine` can return an empty
+    string when used in Bazel's sandboxed action environment, where
+    `PROCESSOR_ARCHITECTURE` and `PROCESSOR_ARCHITEW6432` environment variables
+    are not set by default unless explicitly specified with `--action_env`
+    command line option. As you can see below, the `machine` field of
+    `platform.uname()` is just a wrapper around the `PROCESSOR_ARCHITECTURE`
+    environment variable in these versions of CPython:
+
+      https://github.com/python/cpython/blob/3.9/Lib/platform.py#L729-L739
+
+    To work around the above limitation, this function first uses the
+    `IsWow64Process2` Win32 API to determine the system's CPU architecture, then
+    falls back to `platform.uname().machine` only if the API call fails
+    including the case when the API is not available (e.g., on Windows 10
+    version 1703 or earlier).
+
+    Note that on CPython 3.12.0 and later `platform.uname().machine` seems to
+    work even in Bazel's sandboxed action environment, as it now tries to query
+    the system's CPU architecture with WMI then falling back to
+    `PROCESSOR_ARCHITECTURE` environment variable only when the WMI query fails.
+
+      https://github.com/python/cpython/commit/de33df27aaf930be6a34027c530a651f0b4c91f5
+
+    Returns:
+        str: The host architecture, e.g., 'X86', 'AMD64', 'ARM64', or None if
+        the architecture cannot be determined or if the platform is not
+        Windows.
+    """
+    if os.name != 'nt':
+        # This function is intended to be used only on Windows.
+        return None
+
+    return _get_win_machine_arch_with_api() or platform.uname().machine
+
+
+def normalize_win_arch(arch: Optional[str]) -> Optional[str]:
+  """Normalize the architecture name for Windows build environment.
+
+  Args:
+    arch: a string representation of a CPU architecture to be normalized.
+
+  Returns:
+    String representation of a CPU architecture (e.g. 'x64' and 'arm64').
+    Returns None if the input is None or empty.
+  """
+  if not arch:
+    return None
+  normalized = arch.lower()
+  if normalized == 'amd64':
+    return 'x64'
+  return normalized
 
 
 def get_vcvarsall(
@@ -133,7 +228,7 @@ def get_vcvarsall(
 
 
 def get_vs_env_vars(
-    arch: str,
+    target_arch: str,
     vcvarsall_path_hint: Union[str, None] = None,
 ) -> dict[str, str]:
   """Returns environment variables for the specified Visual Studio C++ tool.
@@ -148,20 +243,17 @@ def get_vs_env_vars(
   from the actual command execution as follows.
 
     cwd = ...
-    env = get_vs_env_vars('amd64_x86')
+    env = get_vs_env_vars('x86')
     subprocess.run(command_fullpath, shell=False, check=True, cwd=cwd, env=env)
 
   or
 
     cwd = ...
-    env = get_vs_env_vars('amd64_x86')
+    env = get_vs_env_vars('x64')
     subprocess.run(command, shell=True, check=True, cwd=cwd, env=env)
 
-  For the 'arch' argument, see the following link to find supported values.
-  https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line#vcvarsall-syntax
-
   Args:
-    arch: The architecture to be used, e.g. 'amd64_x86'
+    target_arch: The architecture to be used, e.g. 'x64', 'x86', 'arm64'
     vcvarsall_path_hint: optional path to vcvarsall.bat
 
   Returns:
@@ -169,8 +261,25 @@ def get_vs_env_vars(
 
   Raises:
     ChildProcessError: When 'vcvarsall.bat' cannot be executed.
+    EnvironmentError: When the host architecture cannot be determined.
     FileNotFoundError: When 'vcvarsall.bat' cannot be found.
+    ValueError: When the target architecture is invalid.
   """
+  target_arch = normalize_win_arch(target_arch)
+  if target_arch not in ('x86', 'x64', 'arm64'):
+    raise ValueError(
+        f'Invalid target architecture: {target_arch}. '
+        'Supported architectures are: x86, x64, arm64.'
+    )
+
+  host_arch = normalize_win_arch(get_win_machine_arch())
+  if host_arch not in ('x86', 'x64', 'arm64'):
+    raise EnvironmentError(
+        'Failed to determine the host architecture. '
+        'Make sure you are running this script on a Windows machine.'
+    )
+
+  arch = host_arch if host_arch == target_arch else f'{host_arch}_{target_arch}'
   vcvarsall = get_vcvarsall(arch, vcvarsall_path_hint)
 
   pycmd = (

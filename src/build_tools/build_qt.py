@@ -53,7 +53,6 @@ import dataclasses
 import functools
 import os
 import pathlib
-import platform
 import shutil
 import subprocess
 import sys
@@ -62,6 +61,8 @@ from typing import Any, Union
 
 from progress_printer import ProgressPrinter
 from vs_util import get_vs_env_vars
+from vs_util import get_win_machine_arch
+from vs_util import normalize_win_arch
 
 
 ABS_SCRIPT_PATH = pathlib.Path(__file__).absolute()
@@ -687,8 +688,8 @@ def build_host_on_windows(args: argparse.Namespace) -> None:
   if not (args.dryrun or qt_src_dir.exists()):
     raise FileNotFoundError('Could not find qt_src_dir=%s' % qt_src_dir)
 
-  arch = platform.uname().machine.lower()
-  env = get_vs_env_vars(arch, args.vcvarsall_path)
+  host_arch = normalize_win_arch(get_win_machine_arch())
+  env = get_vs_env_vars(host_arch, args.vcvarsall_path)
 
   # Use locally checked out ninja.exe if exists.
   ninja_dir = get_ninja_dir(args)
@@ -725,21 +726,6 @@ def build_host_on_windows(args: argparse.Namespace) -> None:
   exec_command(install_cmds, cwd=qt_src_dir, env=env, dryrun=args.dryrun)
 
 
-def normalize_win_arch(arch: str) -> str:
-  """Normalize the architecture name for Windows build environment.
-
-  Args:
-    arch: a string representation of a CPU architecture to be normalized.
-
-  Returns:
-    String representation of a CPU architecture (e.g. 'x64' and 'arm64')
-  """
-  normalized = arch.lower()
-  if normalized == 'amd64':
-    return 'x64'
-  return normalized
-
-
 def build_on_windows(args: argparse.Namespace) -> None:
   """Build Qt from the source code on Windows.
 
@@ -758,10 +744,8 @@ def build_on_windows(args: argparse.Namespace) -> None:
   if not (args.dryrun or qt_src_dir.exists()):
     raise FileNotFoundError('Could not find qt_src_dir=%s' % qt_src_dir)
 
-  host_arch = normalize_win_arch(platform.uname().machine)
   target_arch = normalize_win_arch(args.target_arch)
-  arch = host_arch if host_arch == target_arch else f'{host_arch}_{target_arch}'
-  env = get_vs_env_vars(arch, args.vcvarsall_path)
+  env = get_vs_env_vars(target_arch, args.vcvarsall_path)
 
   # Use locally checked out ninja.exe if exists.
   ninja_dir = get_ninja_dir(args)
