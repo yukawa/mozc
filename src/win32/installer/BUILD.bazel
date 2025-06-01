@@ -109,6 +109,10 @@ genrule(
     ]) + select({
         ":debug_build": " --debug_build",
         "//conditions:default": "",
+    }) + select({
+        "@platforms//cpu:x86_64": " --arch=x64",
+        "@platforms//cpu:arm64": " --arch=arm64",
+        "//conditions:default": "",
     }),
     target_compatible_with = _TARGET_COMPATIBLE_WITH,
     tools = [

@@ -76,10 +76,10 @@ def run_wix4(args) -> None:
   Args:
     args: args
   """
-  vs_env_vars = vs_util.get_vs_env_vars('x64')
+  arch = args.arch
+  vs_env_vars = vs_util.get_vs_env_vars(arch)
   redist_root = pathlib.Path(vs_env_vars['VCTOOLSREDISTDIR']).resolve()
-  redist_x86 = redist_root.joinpath('x86').joinpath('Microsoft.VC143.CRT')
-  redist_x64 = redist_root.joinpath('x64').joinpath('Microsoft.VC143.CRT')
+  redist_x64 = redist_root.joinpath(arch).joinpath('Microsoft.VC143.CRT')
   version_file = pathlib.Path(args.version_file).resolve()
   version = mozc_version.MozcVersion(version_file)
   credit_file = pathlib.Path(args.credit_file).resolve()
@@ -118,7 +118,8 @@ def run_wix4(args) -> None:
       f'{wix_path}',
       'build',
       '-nologo',
-      '-arch', 'x64',
+      '-arch', arch,
+      '-define', f'Arch={arch}',
       '-define', f'MozcVersion={version.GetVersionString()}',
       '-define', f'UpgradeCode={upgrade_code}',
       '-define', f'OmahaGuid={omaha_guid}',
@@ -126,7 +127,6 @@ def run_wix4(args) -> None:
       '-define', f'OmahaClientStateKey={omaha_clientstate_key}',
       '-define', f'OmahaChannelType={omaha_channel_type}',
       '-define', f'VSConfigurationName={vs_configuration_name}',
-      '-define', f'ReleaseRedistCrt32Dir={redist_x86}',
       '-define', f'ReleaseRedistCrt64Dir={redist_x64}',
       '-define', f'AddRemoveProgramIconPath={icon_path}',
       '-define', f'MozcTIP32Path={mozc_tip32}',
@@ -167,6 +167,9 @@ def main():
   parser.add_argument('--branding', type=str)
   parser.add_argument(
       '--debug_build', dest='debug_build', default=False, action='store_true'
+  )
+  parser.add_argument(
+      '--arch', dest='arch', default='x64', choices=['x64', 'arm64'],
   )
 
   args = parser.parse_args()

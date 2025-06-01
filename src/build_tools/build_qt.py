@@ -491,7 +491,11 @@ def parse_args() -> argparse.Namespace:
   )
   if is_windows():
     parser.add_argument(
-        '--target_arch', help='"x64" or "arm64"', type=str, default='x64'
+        '--target_arch',
+        help='The CPU architecture to build for',
+        choices=['x64', 'arm64'],
+        type=str,
+        default=normalize_win_arch(get_win_machine_arch()),
     )
     parser.add_argument(
         '--vcvarsall_path', help='Path of vcvarsall.bat', type=str, default=None
