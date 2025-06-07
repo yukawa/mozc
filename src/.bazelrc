@@ -1,6 +1,10 @@
 ## Startup options
 startup  --windows_enable_symlinks  # ignored on non-Windows platforms
 
+### https://bazel.build/remote/output-directories#layout-diagram
+startup --output_user_root=./out_bazel/user_root
+common --disk_cache=./out_bazel/disk_cache
+
 ## Target platforms
 common:linux      --config=linux_env --define TARGET=oss_linux
 common:oss_linux  --config=linux_env --define TARGET=oss_linux

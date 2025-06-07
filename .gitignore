@@ -47,6 +47,7 @@ MODULE.bazel.lock
 /src/bazel-src
 /src/bazel-src_*
 /src/bazel-testlogs
+/src/out_bazel/
 
 # Mozc build artifacts by GYP
 /src/out_android/
