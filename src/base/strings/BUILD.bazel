@@ -76,6 +76,24 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
+    name = "safe_global_string",
+    hdrs = ["safe_global_string.h"],
+    deps = [
+        ":zstring_view",
+    ],
+)
+
+mozc_cc_test(
+    name = "safe_global_string_test",
+    size = "small",
+    srcs = ["safe_global_string_test.cc"],
+    deps = [
+        ":safe_global_string",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
     name = "zstring_view",
     hdrs = ["zstring_view.h"],
     deps = [
