@@ -114,6 +114,10 @@
 @property(readwrite, assign) NSRange replacementRange;
 @property(readwrite, retain) id imkClientForTest;
 
+// Test-only initialization method that skips IMKInputController initialization
+// and sets up the mock client for testing
+- (id)initWithServerForTest:(id)server delegate:(id)delegate mockClient:(id)mockClient;
+
 /** Sets the RendererReceiver used by all instances of the controller.
  * the RendererReceiver is a singleton object used as a proxy to receive messages from
  * the renderer process and propage it to the active controller instance.

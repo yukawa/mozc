@@ -51,7 +51,9 @@
 #include "testing/gmock.h"
 #include "testing/gunit.h"
 
-@interface MockIMKServer : IMKServer <ServerCallback> {
+// Create a simple mock that doesn't inherit from IMKServer
+// Since we set TEST_SRCDIR, MozcImkInputController will skip IMKInputController init
+@interface MockIMKServer : NSObject <ServerCallback> {
   // The controller which accepts user's clicks
   __weak id<ControllerCallback> expectedController_;
   int setCurrentController_count_;
@@ -64,8 +66,10 @@
 
 - (MockIMKServer *)init {
   self = [super init];
-  expectedController_ = nil;
-  setCurrentController_count_ = 0;
+  if (self) {
+    expectedController_ = nil;
+    setCurrentController_count_ = 0;
+  }
   return self;
 }
 
@@ -260,10 +264,9 @@ class MozcImkInputControllerTest : public testing::Test {
   }
 
   void SetUpController() {
-    controller_ = [[MozcImkInputController alloc] initWithServer:mock_server_
+    controller_ = [[MozcImkInputController alloc] initWithServerForTest:mock_server_
                                                                delegate:nil
-                                                                 client:mock_client_];
-    controller_.imkClientForTest = mock_client_;
+                                                             mockClient:mock_client_];
     mock_server_.expectedController = controller_;
     auto mock_mozc_client = std::make_unique<mozc::client::ClientMock>();
     mock_mozc_client_ = mock_mozc_client.get();
@@ -382,6 +385,7 @@ BOOL SendKeyEvent(unsigned short keyCode, MozcImkInputController *controller,
                                             keyCode:keyCode];
   return [controller handleEvent:kanaKeyEvent client:client];
 }
+
 
 TEST_F(MozcImkInputControllerTest, UpdateComposedString) {
   // If preedit is nullptr, it still calls setMarkedText, with an empty string.

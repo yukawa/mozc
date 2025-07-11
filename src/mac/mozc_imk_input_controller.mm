@@ -178,7 +178,25 @@ bool CanSurroundingText(absl::string_view bundle_id) {
 }
 }  // namespace
 
+@interface MozcImkInputController () {
+  // Flag to indicate if this instance is in test mode
+  BOOL isTestMode_;
+}
+@end
+
 @implementation MozcImkInputController
+
+- (id)initWithServerForTest:(id)server delegate:(id)delegate mockClient:(id)mockClient {
+  isTestMode_ = YES;
+  // Pass nil as client to IMKInputController to avoid NSInvalidArgumentException
+  self = [self initWithServer:(IMKServer *)server delegate:delegate client:nil];
+  if (self) {
+    // Set the mock client after initialization
+    imkClientForTest_ = mockClient;
+  }
+  return self;
+}
+
 #pragma mark accessors for testing
 @synthesize keyCodeMap = keyCodeMap_;
 @synthesize yenSignCharacter = yenSignCharacter_;
@@ -204,7 +222,12 @@ bool CanSurroundingText(absl::string_view bundle_id) {
 // https://developer.apple.com/documentation/inputmethodkit/imkinputcontroller?language=objc
 
 - (id)initWithServer:(IMKServer *)server delegate:(id)delegate client:(id)inputClient {
-  self = [super initWithServer:server delegate:delegate client:inputClient];
+  if (isTestMode_) {
+    // In test mode, skip IMKInputController initialization
+    self = [super init];
+  } else {
+    self = [super initWithServer:server delegate:delegate client:inputClient];
+  }
   if (!self) {
     return self;
   }
@@ -217,14 +240,23 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   suppressSuggestion_ = false;
   yenSignCharacter_ = mozc::config::Config::YEN_SIGN;
   mozcRenderer_ = std::make_unique<mozc::renderer::RendererClient>();
-  mozcClient_ = mozc::client::ClientFactory::NewClient();
+  
+  if (!isTestMode_) {
+    mozcClient_ = mozc::client::ClientFactory::NewClient();
+  }
+  
   imkClientForTest_ = nil;
   lastKeyDownTime_ = 0;
   lastKeyCode_ = 0;
 
   // We don't check the return value of NSBundle because it fails during tests.
-  [[NSBundle mainBundle] loadNibNamed:@"Config" owner:self topLevelObjects:nil];
-  if (!originalString_ || !composedString_ || !mozcRenderer_ || !mozcClient_) {
+  if (!isTestMode_) {
+    [[NSBundle mainBundle] loadNibNamed:@"Config" owner:self topLevelObjects:nil];
+  }
+  
+  // In test mode, mozcClient_ will be set later by the test
+  if (!originalString_ || !composedString_ || !mozcRenderer_ || 
+      (!isTestMode_ && !mozcClient_)) {
     self = nil;
   } else {
     DLOG(INFO) << [[NSString
@@ -233,8 +265,10 @@ bool CanSurroundingText(absl::string_view bundle_id) {
       LOG(ERROR) << "Cannot activate renderer";
       mozcRenderer_.reset();
     }
-    [self setupClientBundle:inputClient];
-    [self setupCapability];
+    if (!isTestMode_) {
+      [self setupClientBundle:inputClient];
+      [self setupCapability];
+    }
     RendererCommand::ApplicationInfo *applicationInfo =
         rendererCommand_.mutable_application_info();
     applicationInfo->set_process_id(::getpid());
@@ -275,7 +309,10 @@ bool CanSurroundingText(absl::string_view bundle_id) {
 // https://developer.apple.com/documentation/inputmethodkit/imkstatesetting?language=objc
 
 - (void)activateServer:(id)sender {
-  [super activateServer:sender];
+  // Only call super if not in test mode
+  if (!isTestMode_) {
+    [super activateServer:sender];
+  }
   [self setupClientBundle:sender];
   if (rendererCommand_.visible() && mozcRenderer_) {
     mozcRenderer_->ExecCommand(rendererCommand_);
@@ -283,7 +320,9 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   [self handleConfig];
 
   // Sets this controller as the active controller to receive messages from the renderer process.
-  [gRendererReceiver setCurrentController:self];
+  if (gRendererReceiver) {
+    [gRendererReceiver setCurrentController:self];
+  }
 
   std::string window_name, window_owner;
   if (mozc::MacUtil::GetFrontmostWindowNameAndOwner(&window_name, &window_owner)) {
@@ -306,7 +345,10 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   }
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): deactivated";
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
-  [super deactivateServer:sender];
+  // Only call super if not in test mode
+  if (!isTestMode_) {
+    [super deactivateServer:sender];
+  }
 }
 
 - (NSUInteger)recognizedEvents:(id)sender {
@@ -326,12 +368,20 @@ bool CanSurroundingText(absl::string_view bundle_id) {
 
   [self switchMode:new_mode client:sender];
   [self handleConfig];
-  [super setValue:value forTag:tag client:sender];
+  // Only call super if not in test mode
+  if (!isTestMode_) {
+    [super setValue:value forTag:tag client:sender];
+  }
 }
 
 #pragma mark internal methods
 
 - (void)handleConfig {
+  if (!mozcClient_) {
+    LOG(INFO) << "handleConfig: mozcClient_ is null, skipping";
+    return;
+  }
+  
   // Get the config and set client-side behaviors
   Config config;
   if (!mozcClient_->GetConfig(&config)) {
@@ -343,7 +393,9 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   if (config.preedit_method() == Config::KANA) {
     input_mode = KANA;
   }
-  [keyCodeMap_ setInputMode:input_mode];
+  if (keyCodeMap_) {
+    [keyCodeMap_ setInputMode:input_mode];
+  }
   yenSignCharacter_ = config.yen_sign_character();
 
   if (config.use_japanese_layout()) {
@@ -362,6 +414,11 @@ bool CanSurroundingText(absl::string_view bundle_id) {
 }
 
 - (void)setupCapability {
+  if (!mozcClient_) {
+    LOG(INFO) << "setupCapability: mozcClient_ is null, skipping";
+    return;
+  }
+  
   Capability capability;
 
   if (CanSelectedRange(clientBundle_)) {
@@ -702,9 +759,16 @@ bool CanSurroundingText(absl::string_view bundle_id) {
 // |selecrionRange| method is defined at IMKInputController class and
 // means the position of cursor actually.
 - (NSRange)selectionRange {
-  return (cursorPosition_ == -1)
-             ? [super selectionRange]  // default behavior defined at super class
-             : NSMakeRange(cursorPosition_, 0);
+  if (cursorPosition_ != -1) {
+    return NSMakeRange(cursorPosition_, 0);
+  }
+  
+  // In test mode, super class is NSObject which doesn't have selectionRange
+  if (isTestMode_) {
+    return NSMakeRange(0, 0);
+  }
+  
+  return [super selectionRange];  // default behavior defined at super class
 }
 
 - (void)delayedUpdateCandidates {
