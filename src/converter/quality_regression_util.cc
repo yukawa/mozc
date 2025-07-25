@@ -49,7 +49,6 @@
 #include "absl/types/span.h"
 #include "base/file_stream.h"
 #include "base/number_util.h"
-#include "base/text_normalizer.h"
 #include "base/util.h"
 #include "composer/composer.h"
 #include "composer/table.h"
@@ -148,7 +147,7 @@ absl::Status QualityRegressionUtil::TestItem::ParseFromTSV(
   }
   label.assign(tokens[0].data(), tokens[0].size());
   key.assign(tokens[1].data(), tokens[1].size());
-  expected_value = TextNormalizer::NormalizeText(tokens[2]);
+  expected_value = tokens[2];
   command.assign(tokens[3].data(), tokens[3].size());
 
   if (tokens.size() == 4) {

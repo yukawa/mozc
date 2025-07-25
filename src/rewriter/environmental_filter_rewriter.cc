@@ -46,7 +46,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "base/container/serialized_string_array.h"
-#include "base/text_normalizer.h"
 #include "base/util.h"
 #include "converter/candidate.h"
 #include "converter/segments.h"
@@ -172,28 +171,6 @@ std::vector<AdditionalRenderableCharacterGroup> GetNonrenderableGroups(
 bool ShouldKeepCandidate(const converter::Candidate &candidate) {
   return candidate.attributes & (converter::Candidate::NO_MODIFICATION |
                                  converter::Candidate::USER_DICTIONARY);
-}
-
-bool NormalizeCandidate(converter::Candidate *candidate,
-                        TextNormalizer::Flag flag) {
-  DCHECK(candidate);
-  // ShouldKeepCandidate should be called before.
-  const std::string value =
-      TextNormalizer::NormalizeTextWithFlag(candidate->value, flag);
-  const std::string content_value =
-      TextNormalizer::NormalizeTextWithFlag(candidate->content_value, flag);
-
-  if (content_value == candidate->content_value && value == candidate->value) {
-    // No update.
-    return false;
-  }
-
-  candidate->value = std::move(value);
-  candidate->content_value = std::move(content_value);
-  // Clear the description which might be wrong.
-  candidate->description.clear();
-
-  return true;
 }
 
 EmojiDataIterator begin(const absl::string_view token_array_data) {
@@ -405,16 +382,6 @@ bool EnvironmentalFilterRewriter::Rewrite(const ConversionRequest &request,
 
   bool modified = false;
   for (Segment &segment : segments->conversion_segments()) {
-    // Meta candidate
-    for (size_t j = 0; j < segment.meta_candidates_size(); ++j) {
-      converter::Candidate *candidate = segment.mutable_meta_candidate(j);
-      DCHECK(candidate);
-      if (ShouldKeepCandidate(*candidate)) {
-        continue;
-      }
-      modified |= NormalizeCandidate(candidate, flag_);
-    }
-
     // Regular candidate.
     const size_t candidates_size = segment.candidates_size();
 
@@ -426,9 +393,6 @@ bool EnvironmentalFilterRewriter::Rewrite(const ConversionRequest &request,
       if (ShouldKeepCandidate(*candidate)) {
         continue;
       }
-
-      // Character Normalization
-      modified |= NormalizeCandidate(candidate, flag_);
 
       const std::u32string codepoints = Util::Utf8ToUtf32(candidate->value);
 

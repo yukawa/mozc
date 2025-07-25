@@ -46,7 +46,6 @@
 #include "absl/types/span.h"
 #include "base/port.h"
 #include "base/strings/assign.h"
-#include "base/text_normalizer.h"
 #include "base/util.h"
 #include "base/version.h"
 #include "composer/composer.h"
@@ -411,27 +410,14 @@ bool FillFooter(const commands::Category category,
 
 bool AddSegment(const absl::string_view key, const absl::string_view value,
                 const uint32_t segment_type_mask, commands::Preedit *preedit) {
-  // Key is always normalized as a preedit text.
-  std::string normalized_key = TextNormalizer::NormalizeText(key);
-
-  std::string normalized_value;
-  if (segment_type_mask & PREEDIT) {
-    normalized_value = TextNormalizer::NormalizeText(value);
-  } else if (segment_type_mask & CONVERSION) {
-    strings::Assign(normalized_value, value);
-  } else {
-    LOG(WARNING) << "Unknown segment type" << segment_type_mask;
-    strings::Assign(normalized_value, value);
-  }
-
-  if (normalized_value.empty()) {
+  if (value.empty()) {
     return false;
   }
 
   commands::Preedit::Segment *segment = preedit->add_segment();
-  segment->set_key(std::move(normalized_key));
-  segment->set_value_length(Util::CharsLen(normalized_value));
-  segment->set_value(std::move(normalized_value));
+  segment->set_key(key);
+  segment->set_value_length(Util::CharsLen(value));
+  segment->set_value(value);
   segment->set_annotation(commands::Preedit::Segment::UNDERLINE);
   if ((segment_type_mask & CONVERSION) && (segment_type_mask & FOCUSED)) {
     segment->set_annotation(commands::Preedit::Segment::HIGHLIGHT);
@@ -476,33 +462,18 @@ void FillConversion(const Segments &segments, const size_t segment_index,
   preedit->set_cursor(cursor);
 }
 
-void FillConversionResultWithoutNormalization(std::string key,
-                                              std::string result,
-                                              commands::Result *result_proto) {
-  result_proto->set_type(commands::Result::STRING);
-  result_proto->set_key(std::move(key));
-  result_proto->set_value(std::move(result));
-}
-
 void FillConversionResult(const absl::string_view key, std::string result,
                           commands::Result *result_proto) {
-  // Key should be normalized as a preedit text.
-  std::string normalized_key = TextNormalizer::NormalizeText(key);
-
-  // value is already normalized by converter.
-  FillConversionResultWithoutNormalization(std::move(normalized_key),
-                                           std::move(result), result_proto);
+  result_proto->set_type(commands::Result::STRING);
+  result_proto->set_key(key);
+  result_proto->set_value(result);
 }
 
 void FillPreeditResult(const absl::string_view preedit,
                        commands::Result *result_proto) {
-  std::string normalized_preedit = TextNormalizer::NormalizeText(preedit);
-  // Copy before passing the value to FillConversionResultWithoutNormalization.
-  // std::move() is evaluated out of order when used directly in the function
-  // parameters.
-  std::string key = normalized_preedit;
-  FillConversionResultWithoutNormalization(
-      std::move(key), std::move(normalized_preedit), result_proto);
+  result_proto->set_type(commands::Result::STRING);
+  result_proto->set_key(preedit);
+  result_proto->set_value(preedit);
 }
 
 void FillCursorOffsetResult(int32_t cursor_offset,

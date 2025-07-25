@@ -44,7 +44,6 @@
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "base/text_normalizer.h"
 #include "base/util.h"
 #include "base/vlog.h"
 #include "composer/composer.h"
@@ -905,7 +904,6 @@ void EngineConverter::CommitPreedit(const composer::Composer &composer,
                                     const commands::Context &context) {
   const std::string key = composer.GetQueryForConversion();
   const std::string preedit = composer.GetStringForSubmission();
-  std::string normalized_preedit = TextNormalizer::NormalizeText(preedit);
   output::FillPreeditResult(preedit, &result_);
 
   // Add ResultToken
@@ -914,9 +912,9 @@ void EngineConverter::CommitPreedit(const composer::Composer &composer,
   token->set_value(preedit);
 
   // Cursor offset needs to be calculated based on normalized text.
-  output::FillCursorOffsetResult(CalculateCursorOffset(normalized_preedit),
+  output::FillCursorOffsetResult(CalculateCursorOffset(preedit),
                                  &result_);
-  segments_.InitForCommit(key, normalized_preedit);
+  segments_.InitForCommit(key, preedit);
   CommitSegmentsSize(EngineConverterInterface::COMPOSITION, context);
   DCHECK(request_);
   DCHECK(config_);
@@ -947,9 +945,8 @@ void EngineConverter::CommitHead(size_t count,
     *consumed_key_size = count;
   }
   Util::Utf8SubString(preedit, 0, *consumed_key_size, &preedit);
-  const std::string composition = TextNormalizer::NormalizeText(preedit);
-  output::FillPreeditResult(composition, &result_);
-  output::FillCursorOffsetResult(CalculateCursorOffset(composition), &result_);
+  output::FillPreeditResult(preedit, &result_);
+  output::FillCursorOffsetResult(CalculateCursorOffset(preedit), &result_);
 }
 
 void EngineConverter::Revert() { converter_->RevertConversion(&segments_); }

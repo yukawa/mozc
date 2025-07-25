@@ -109,12 +109,6 @@ bool AddSegment(absl::string_view, absl::string_view value,
                 uint32_t segment_type_mask, commands::Preedit *preedit);
 
 // Fill the Result protobuf with the key and result strings
-// for a conversion result without any text normalization.
-void FillConversionResultWithoutNormalization(std::string key,
-                                              std::string result,
-                                              commands::Result *result_proto);
-
-// Fill the Result protobuf with the key and result strings
 // normalizing the string for a conversion result.
 void FillConversionResult(absl::string_view key, std::string result,
                           commands::Result *result_proto);

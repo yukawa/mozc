@@ -35,7 +35,6 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "base/text_normalizer.h"
 #include "base/util.h"
 #include "converter/candidate.h"
 #include "converter/segments.h"
@@ -791,7 +790,6 @@ TEST(EngineOutputTest, AddSegment) {
   commands::Preedit preedit;
   int index = 0;
   {
-    // "〜" is a character to be processed by TextNormalizer::NormalizeText
     const std::string kKey = "ゔ〜 preedit focused";
     const std::string kValue = "ゔ〜 PREEDIT FOCUSED";
     const int types = output::PREEDIT | output::FOCUSED;
@@ -799,11 +797,9 @@ TEST(EngineOutputTest, AddSegment) {
     EXPECT_EQ(preedit.segment_size(), index + 1);
     const commands::Preedit::Segment &segment = preedit.segment(index);
 
-    const std::string normalized_key = TextNormalizer::NormalizeText(kKey);
-    EXPECT_EQ(segment.key(), normalized_key);
-    const std::string normalized_value = TextNormalizer::NormalizeText(kValue);
-    EXPECT_EQ(segment.value(), normalized_value);
-    EXPECT_EQ(segment.value_length(), Util::CharsLen(normalized_value));
+    EXPECT_EQ(segment.key(), kKey);
+    EXPECT_EQ(segment.value(), kValue);
+    EXPECT_EQ(segment.value_length(), Util::CharsLen(kValue));
     EXPECT_EQ(segment.annotation(), commands::Preedit::Segment::UNDERLINE);
     ++index;
   }
@@ -816,11 +812,9 @@ TEST(EngineOutputTest, AddSegment) {
     EXPECT_EQ(preedit.segment_size(), index + 1);
     const commands::Preedit::Segment &segment = preedit.segment(index);
 
-    const std::string normalized_key = TextNormalizer::NormalizeText(kKey);
-    EXPECT_EQ(segment.key(), normalized_key);
-    const std::string normalized_value = TextNormalizer::NormalizeText(kValue);
-    EXPECT_EQ(segment.value(), normalized_value);
-    EXPECT_EQ(segment.value_length(), Util::CharsLen(normalized_value));
+    EXPECT_EQ(segment.key(), kKey);
+    EXPECT_EQ(segment.value(), kValue);
+    EXPECT_EQ(segment.value_length(), Util::CharsLen(kValue));
     EXPECT_EQ(segment.annotation(), commands::Preedit::Segment::UNDERLINE);
     ++index;
   }
@@ -833,12 +827,9 @@ TEST(EngineOutputTest, AddSegment) {
     EXPECT_EQ(preedit.segment_size(), index + 1);
     const commands::Preedit::Segment &segment = preedit.segment(index);
 
-    const std::string normalized_key = TextNormalizer::NormalizeText(kKey);
-    EXPECT_EQ(segment.key(), normalized_key);
-    // Normalization is performed in Rewriter.
-    absl::string_view normalized_value = kValue;
-    EXPECT_EQ(segment.value(), normalized_value);
-    EXPECT_EQ(segment.value_length(), Util::CharsLen(normalized_value));
+    EXPECT_EQ(segment.key(), kKey);
+    EXPECT_EQ(segment.value(), kValue);
+    EXPECT_EQ(segment.value_length(), Util::CharsLen(kValue));
     EXPECT_EQ(segment.annotation(), commands::Preedit::Segment::HIGHLIGHT);
     ++index;
   }
@@ -851,12 +842,9 @@ TEST(EngineOutputTest, AddSegment) {
     EXPECT_EQ(preedit.segment_size(), index + 1);
     const commands::Preedit::Segment &segment = preedit.segment(index);
 
-    const std::string normalized_key = TextNormalizer::NormalizeText(kKey);
-    EXPECT_EQ(segment.key(), normalized_key);
-    // Normalization is performed in Rewriter.
-    absl::string_view normalized_value = kValue;
-    EXPECT_EQ(segment.value(), normalized_value);
-    EXPECT_EQ(segment.value_length(), Util::CharsLen(normalized_value));
+    EXPECT_EQ(segment.key(), kKey);
+    EXPECT_EQ(segment.value(), kValue);
+    EXPECT_EQ(segment.value_length(), Util::CharsLen(kValue));
     EXPECT_EQ(segment.annotation(), commands::Preedit::Segment::UNDERLINE);
     ++index;
   }
@@ -868,16 +856,6 @@ TEST(EngineOutputTest, AddSegment) {
     EXPECT_FALSE(output::AddSegment(kKey, kValue, types, &preedit));
     EXPECT_EQ(preedit.segment_size(), index);
   }
-}
-
-TEST(EngineOutputTest, FillConversionResultWithoutNormalization) {
-  constexpr char kInput[] = "ゔ";
-
-  commands::Result result;
-  output::FillConversionResultWithoutNormalization(kInput, kInput, &result);
-  EXPECT_EQ(result.type(), commands::Result::STRING);
-  EXPECT_EQ(result.key(), kInput);    // should not be normalized
-  EXPECT_EQ(result.value(), kInput);  // should not be normalized
 }
 
 TEST(EngineOutputTest, FillConversionResult) {

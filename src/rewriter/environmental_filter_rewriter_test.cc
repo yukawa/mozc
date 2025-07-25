@@ -39,7 +39,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "base/container/serialized_string_array.h"
-#include "base/text_normalizer.h"
 #include "base/util.h"
 #include "converter/candidate.h"
 #include "converter/segments.h"
@@ -475,40 +474,12 @@ TEST_F(EnvironmentalFilterRewriterTest, NormalizationTest) {
   EXPECT_FALSE(rewriter_->Rewrite(request, &segments));
   EXPECT_EQ(segments.segment(0).candidate(0).value, "京都");
 
-  // Wave dash (U+301C) per platform
-  segments.Clear();
-  AddSegment("なみ", "〜", &segments);
-  constexpr char description[] = "[全]波ダッシュ";
-  segments.mutable_segment(0)->mutable_candidate(0)->description = description;
-#ifdef _WIN32
-  EXPECT_TRUE(rewriter_->Rewrite(request, &segments));
-  // U+FF5E
-  EXPECT_EQ(segments.segment(0).candidate(0).value, "～");
-  EXPECT_TRUE(segments.segment(0).candidate(0).description.empty());
-#else   // _WIN32
-  EXPECT_FALSE(rewriter_->Rewrite(request, &segments));
-  // U+301C
-  EXPECT_EQ(segments.segment(0).candidate(0).value, "〜");
-  EXPECT_EQ(segments.segment(0).candidate(0).description, description);
-#endif  // _WIN32
-
-  // Wave dash (U+301C) w/ normalization
-  segments.Clear();
-  AddSegment("なみ", "〜", &segments);
-  segments.mutable_segment(0)->mutable_candidate(0)->description = description;
-
-  rewriter_->SetNormalizationFlag(TextNormalizer::kAll);
-  EXPECT_TRUE(rewriter_->Rewrite(request, &segments));
-  // U+FF5E
-  EXPECT_EQ(segments.segment(0).candidate(0).value, "～");
-  EXPECT_TRUE(segments.segment(0).candidate(0).description.empty());
-
   // Wave dash (U+301C) w/o normalization
+  constexpr char description[] = "[全]波ダッシュ";
   segments.Clear();
   AddSegment("なみ", "〜", &segments);
   segments.mutable_segment(0)->mutable_candidate(0)->description = description;
 
-  rewriter_->SetNormalizationFlag(TextNormalizer::kNone);
   EXPECT_FALSE(rewriter_->Rewrite(request, &segments));
   // U+301C
   EXPECT_EQ(segments.segment(0).candidate(0).value, "〜");
