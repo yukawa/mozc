@@ -42,7 +42,6 @@
 #include "absl/types/span.h"
 #include "base/japanese_util.h"
 #include "base/number_util.h"
-#include "base/text_normalizer.h"
 #include "base/util.h"
 #include "composer/composer.h"
 #include "converter/candidate.h"
@@ -70,13 +69,6 @@ bool IsComposerApplicable(const ConversionRequest &request,
   DLOG(WARNING) << "composer seems invalid: composer_key " << request.key()
                 << " segments_key " << segments_key;
   return false;
-}
-
-void NormalizeT13ns(std::vector<std::string> *t13ns) {
-  DCHECK(t13ns);
-  for (size_t i = 0; i < t13ns->size(); ++i) {
-    t13ns->at(i) = TextNormalizer::NormalizeText(t13ns->at(i));
-  }
 }
 
 // Function object to check if c >= 0 && c < upper_bound, where T is
@@ -226,8 +218,6 @@ void ModifyT13ns(const ConversionRequest &request, const Segment &segment,
   if (special_romanji_table == commands::Request::GODAN_TO_HIRAGANA) {
     ModifyT13nsForGodan(segment.key(), t13ns);
   }
-
-  NormalizeT13ns(t13ns);
 }
 }  // namespace
 
@@ -310,7 +300,6 @@ bool TransliterationRewriter::FillT13nsFromKey(Segments *segments) const {
     t13ns[transliteration::FULL_ASCII_LOWER] = full_ascii_lower;
     t13ns[transliteration::FULL_ASCII_CAPITALIZED] = full_ascii_capitalized;
 
-    NormalizeT13ns(&t13ns);
     modified |= SetTransliterations(t13ns, segment.key(), &segment);
   }
   return modified;

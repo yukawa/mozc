@@ -57,7 +57,6 @@
 #include <vector>
 
 #include "absl/types/span.h"
-#include "base/text_normalizer.h"
 #include "converter/segments.h"
 #include "data_manager/data_manager.h"
 #include "request/conversion_request.h"
@@ -106,12 +105,8 @@ class EnvironmentalFilterRewriter : public RewriterInterface {
 
   bool Rewrite(const ConversionRequest &request,
                Segments *segments) const override;
-  void SetNormalizationFlag(TextNormalizer::Flag flag) { flag_ = flag; }
 
  private:
-  // Controls the normalization behavior.
-  TextNormalizer::Flag flag_ = TextNormalizer::kDefault;
-
   // Filters for filtering target Emoji versions.
   CharacterGroupFinder finder_e12_1_;
   CharacterGroupFinder finder_e13_0_;

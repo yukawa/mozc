@@ -35,55 +35,6 @@
 
 namespace mozc {
 
-TEST(TextNormalizerTest, NormalizeText) {
-  std::string output;
-
-  output = TextNormalizer::NormalizeText("めかぶ");
-  EXPECT_EQ(output, "めかぶ");
-
-  output = TextNormalizer::NormalizeText("ゔぁいおりん");
-  EXPECT_EQ(output, "ゔぁいおりん");
-
-  // "〜" is U+301C
-  output = TextNormalizer::NormalizeText("ぐ〜ぐる");
-#ifdef _WIN32
-  EXPECT_EQ(output, "ぐ～ぐる");  // "～" is U+FF5E
-#else                             // _WIN32
-  EXPECT_EQ(output, "ぐ〜ぐる");  // "〜" is U+301C
-#endif                            // _WIN32
-
-  // "〜" is U+301C
-  output =
-      TextNormalizer::NormalizeTextWithFlag("ぐ〜ぐる", TextNormalizer::kAll);
-  EXPECT_EQ(output, "ぐ～ぐる");  // "～" is U+FF5E
-
-  output =
-      TextNormalizer::NormalizeTextWithFlag("ぐ〜ぐる", TextNormalizer::kNone);
-  EXPECT_EQ(output, "ぐ〜ぐる");  // "～" is U+301C
-
-  // "−" is U+2212
-  output = TextNormalizer::NormalizeText("１−２−３");
-#ifdef _WIN32
-  EXPECT_EQ(output, "１－２－３");  // "－" is U+FF0D
-#else                               // _WIN32
-  EXPECT_EQ(output, "１−２−３");  // "−" is U+2212
-#endif                              // _WIN32
-
-  // "−" is U+2212
-  output =
-      TextNormalizer::NormalizeTextWithFlag("１−２−３", TextNormalizer::kAll);
-  EXPECT_EQ(output, "１－２－３");  // "－" is U+FF0D
-
-  output =
-      TextNormalizer::NormalizeTextWithFlag("１−２−３", TextNormalizer::kNone);
-  EXPECT_EQ(output, "１−２−３");  // "−" is U+2212
-
-  // "¥" is U+00A5
-  output = TextNormalizer::NormalizeText("¥298");
-  // U+00A5 is no longer normalized.
-  EXPECT_EQ(output, "¥298");
-}
-
 TEST(TextNormalizerTest, NormalizeTextToSvs) {
   std::string output;
   EXPECT_FALSE(TextNormalizer::NormalizeTextToSvs("", &output));

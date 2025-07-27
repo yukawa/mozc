@@ -40,32 +40,6 @@
 namespace mozc {
 namespace {
 
-// Unicode vender specific character table:
-// http://hp.vector.co.jp/authors/VA010341/unicode/
-// http://www.notoinsatu.co.jp/font/omake/OTF_other.pdf
-//
-// Example: WAVE_DASH / FULLWIDTH TILDE
-// http://ja.wikipedia.org/wiki/%E6%B3%A2%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5
-// Windows CP932 (shift-jis) maps WAVE_DASH to FULL_WIDTH_TILDA.
-// Since the font of WAVE-DASH is ugly on Windows, here we convert WAVE-DHASH to
-// FULL_WIDTH_TILDA as CP932 does.
-//
-// As Unicode has became the defacto default encoding, we have reduced
-// the number of characters to be normalized.
-inline char32_t NormalizeCharForWindows(char32_t c) {
-  switch (c) {
-    case 0x301C:      // WAVE DASH
-      return 0xFF5E;  // FULLWIDTH TILDE
-      break;
-    case 0x2212:      // MINUS SIGN
-      return 0xFF0D;  // FULLWIDTH HYPHEN MINUS
-      break;
-    default:
-      return c;
-      break;
-  }
-}
-
 std::pair<int, int> ConvertJaCjkCompatToSvs(char32_t cjk_compat_char) {
   constexpr const std::pair<int, int> no_value = {0, 0};
 
@@ -173,31 +147,7 @@ std::pair<int, int> ConvertJaCjkCompatToSvs(char32_t cjk_compat_char) {
   return std::make_pair(svs_base, svs_extend);
 }
 
-std::string NormalizeTextForWindows(absl::string_view input) {
-  std::string output;
-  for (ConstChar32Iterator iter(input); !iter.Done(); iter.Next()) {
-    Util::CodepointToUtf8Append(NormalizeCharForWindows(iter.Get()), &output);
-  }
-  return output;
-}
 }  // namespace
-
-std::string TextNormalizer::NormalizeTextWithFlag(absl::string_view input,
-                                                  TextNormalizer::Flag flag) {
-  if (flag == TextNormalizer::kDefault) {
-#ifdef _WIN32
-    flag = TextNormalizer::kAll;
-#else  // _WIN32
-    flag = TextNormalizer::kNone;
-#endif  // _WIN32
-  }
-
-  if (flag != TextNormalizer::kAll) {
-    return std::string(input.data(), input.size());
-  }
-
-  return NormalizeTextForWindows(input);
-}
 
 bool TextNormalizer::NormalizeTextToSvs(absl::string_view input,
                                         std::string *output) {
