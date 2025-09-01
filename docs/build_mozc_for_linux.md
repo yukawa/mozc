@@ -147,6 +147,29 @@ git update-index --assume-unchanged src/config.bzl
 git update-index --no-assume-unchanged src/config.bzl
 ```
 
+### Offline build
+
+To build Mozc without network connection, you can begin with researching how to
+do so in general with the Bazel build system, as Mozc itself uses Bazel in a
+standard way.
+
+Bazel's [vendor mode](https://bazel.build/external/vendor) is something you can
+try as the initial step.
+
+  1. Turn on the network access.
+  2. `bazelisk vendor package --nobuild --vendor_dir=<your_vendor_dir> --config oss_linux --config release_build`
+  3. Turn off the network access.
+  4. `bazelisk build package --vendor_dir=<your_vendor_dir> --config oss_linux --config release_build`
+
+Files under `<your_vendor_dir>` are supposed to be reusable as long as the build
+environment you run the step 2 is similar enough to the environment you
+run the step 4.
+
+> [!IMPORTANT]
+> `bazelisk` also relies on the Internet connection to download the required
+> version of `bazel`. You may need to backup `$XDG_CACHE_HOME/bazelisk` (or
+> `$HOME/.cache/bazel`), or may want to directly use `bazel` command.
+
 ## Bazel command examples
 
 ### Bazel User Guide

@@ -304,10 +304,8 @@ http_file(
     ],
 )
 
-# Note that there is also 'archive_override', which wraps 'http_archive'.
-# https://bazel.build/rules/lib/globals/module#archive_override
-# Note also that 'git_override' isn't an option here because 'bazelisk fetch'
-# would fail. https://github.com/bazelbuild/bazel/issues/5116
+# Here we use "http_archive" instead of "git_repository" as recommended in
+# https://bazel.build/rules/lib/repo/git#git_repository
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # Windows Implementation Library (WIL)
