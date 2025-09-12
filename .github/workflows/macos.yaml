@@ -4,7 +4,8 @@ name: CI for macOS
 # Run on push.
 on: push
 
-permissions: read-all
+permissions:
+  contents: read
 
 # Prevent previous workflows from running.
 concurrency:
@@ -22,6 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Try to restore update_deps cache
         uses: actions/cache@v4
@@ -63,6 +65,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Try to restore update_deps cache
         uses: actions/cache@v4
@@ -104,6 +107,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Try to restore update_deps cache
         uses: actions/cache@v4
@@ -145,6 +149,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Try to restore update_deps cache
         uses: actions/cache@v4
@@ -176,6 +181,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: false
+          persist-credentials: false
 
       - name: Try to restore update_deps cache
         uses: actions/cache@v4
