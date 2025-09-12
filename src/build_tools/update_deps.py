@@ -40,6 +40,7 @@ import dataclasses
 import hashlib
 import os
 import pathlib
+import platform
 import shutil
 import stat
 import subprocess
@@ -101,29 +102,40 @@ NDK_MAC = ArchiveInfo(
 )
 
 NINJA_MAC = ArchiveInfo(
-    url='https://github.com/ninja-build/ninja/releases/download/v1.11.0/ninja-mac.zip',
-    size=277298,
-    sha256='21915277db59756bfc61f6f281c1f5e3897760b63776fd3d360f77dd7364137f',
+    url='https://github.com/ninja-build/ninja/releases/download/v1.13.1/ninja-mac.zip',
+    size=314009,
+    sha256='da7797794153629aca5570ef7c813342d0be214ba84632af886856e8f0063dd9',
 )
 
 NINJA_WIN = ArchiveInfo(
-    url='https://github.com/ninja-build/ninja/releases/download/v1.11.0/ninja-win.zip',
-    size=285411,
-    sha256='d0ee3da143211aa447e750085876c9b9d7bcdd637ab5b2c5b41349c617f22f3b',
+    url='https://github.com/ninja-build/ninja/releases/download/v1.13.1/ninja-win.zip',
+    size=289808,
+    sha256='26a40fa8595694dec2fad4911e62d29e10525d2133c9a4230b66397774ae25bf',
+)
+
+NINJA_WIN_ARM64 = ArchiveInfo(
+    url='https://github.com/ninja-build/ninja/releases/download/v1.13.1/ninja-winarm64.zip',
+    size=266805,
+    sha256='fb959b674970e36a7c9a23191524b80fb5298fc71fc98bfa42456bcc0a8dfb2f',
 )
 
 LLVM_WIN = ArchiveInfo(
-    url='https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.1/clang+llvm-20.1.1-x86_64-pc-windows-msvc.tar.xz',
-    size=939286624,
-    sha256='f8114cb674317e8a303731b1f9d22bf37b8c571b64f600abe528e92275ed4ace',
+    url='https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.0/clang+llvm-21.1.0-x86_64-pc-windows-msvc.tar.xz',
+    size=943723704,
+    sha256='751aab63f074f041883a5317ad100dbe1e60794693f896df83958824cbc4962a',
+)
+
+LLVM_WIN_ARM64 = ArchiveInfo(
+    url='https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.0/clang+llvm-21.1.0-aarch64-pc-windows-msvc.tar.xz',
+    size=1059573280,
+    sha256='c2869e4173ed18185fa599174faeedab3fdaaf1fd86926d4b62df9bf137bef53',
 )
 
 MSYS2 = ArchiveInfo(
-    url='https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-base-x86_64-20250221.tar.xz',
-    size=50089256,
-    sha256='850589091e731d14b234447084737ca62aee1cc1e3c10be62fcdc12b8263d70b',
+    url='https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-base-x86_64-20250830.tar.xz',
+    size=52886052,
+    sha256='780d7546aa86b781e0ded37c7b8f71f1b8572219494fe88259d8d4b78752b2e2',
 )
-
 
 def get_sha256(path: pathlib.Path) -> str:
   """Returns SHA-256 hash digest of the specified file.
@@ -286,6 +298,12 @@ class StatefulLLVMExtractionFilter:
 
     skipping = True
     paths = member.name.split('/')
+    base_path = paths[0]
+    base_path = base_path.lstrip('clang+llvm-')
+    base_path = base_path.rstrip('-x86_64-pc-windows-msvc')
+    base_path = base_path.rstrip('-aarch64-pc-windows-msvc')
+    paths[0] = base_path
+    new_path = '/'.join(paths)
     if (
         len(paths) == 3
         and paths[1] == 'bin'
@@ -295,22 +313,22 @@ class StatefulLLVMExtractionFilter:
     elif len(paths) >= 2 and paths[1] in ['include', 'lib']:
       skipping = False
     if skipping:
-      self.printer.print_line('skipping   ' + member.name)
+      self.printer.print_line('skipping   ' + new_path)
       return None
-    self.printer.print_line('extracting ' + member.name)
-    return member
+    self.printer.print_line('extracting ' + new_path)
+    return member.replace(name=new_path, deep=False)
 
 
-def extract_llvm(dryrun: bool = False) -> None:
+def extract_llvm(archive: ArchiveInfo, dryrun: bool = False) -> None:
   """Extract LLVM archive.
 
   Args:
+    archive: LLVM archive.
     dryrun: True if this is a dry-run.
   """
   if not is_windows():
     return
 
-  archive = LLVM_WIN
   src = CACHE_DIR.joinpath(archive.filename)
   dest = ABS_THIRD_PARTY_DIR.joinpath('llvm').absolute()
 
@@ -435,18 +453,17 @@ def extract_msys2(archive: ArchiveInfo, dryrun: bool = False) -> None:
         f.extractall(path=dest, members=msys2_extract_filter(f))
 
 
-def extract_ninja(dryrun: bool = False) -> None:
+def extract_ninja(archive: ArchiveInfo, dryrun: bool = False) -> None:
   """Extract ninja-win archive.
 
   Args:
+    archive: Ninja archive
     dryrun: True if this is a dry-run.
   """
   dest = ABS_THIRD_PARTY_DIR.joinpath('ninja').absolute()
   if is_mac():
-    archive = NINJA_MAC
     exe = 'ninja'
   elif is_windows():
-    archive = NINJA_WIN
     exe = 'ninja.exe'
   else:
     return
@@ -592,6 +609,8 @@ def main():
 
   args = parser.parse_args()
 
+  is_arm64 = platform.machine().lower() == 'arm64'
+
   archives = []
   if (not args.noqt) and (is_windows() or is_mac()):
     archives.append(QT6)
@@ -599,7 +618,10 @@ def main():
     if is_mac():
       archives.append(NINJA_MAC)
     elif is_windows():
-      archives.append(NINJA_WIN)
+      if is_arm64:
+        archives.append(NINJA_WIN_ARM64)
+      else:
+        archives.append(NINJA_WIN)
   if not args.nondk:
     if is_linux():
       archives.append(NDK_LINUX)
@@ -607,7 +629,10 @@ def main():
       archives.append(NDK_MAC)
   if is_windows():
     if not args.nollvm:
-      archives.append(LLVM_WIN)
+      if is_arm64:
+        archives.append(LLVM_WIN_ARM64)
+      else:
+        archives.append(LLVM_WIN)
     if not args.nomsys2:
       archives.append(MSYS2)
 
@@ -617,8 +642,9 @@ def main():
   if args.cache_only:
     return
 
-  if LLVM_WIN in archives:
-    extract_llvm(args.dryrun)
+  for llvm in [LLVM_WIN, LLVM_WIN_ARM64]:
+    if llvm in archives:
+      extract_llvm(llvm, args.dryrun)
 
   if MSYS2 in archives:
     extract_msys2(MSYS2, args.dryrun)
@@ -626,8 +652,10 @@ def main():
   if (not args.nowix) and is_windows():
     restore_dotnet_tools(args.dryrun)
 
-  if (NINJA_WIN in archives) or (NINJA_MAC in archives):
-    extract_ninja(args.dryrun)
+  for ninja in [NINJA_MAC, NINJA_WIN, NINJA_WIN_ARM64]:
+    if ninja in archives:
+      extract_ninja(ninja, args.dryrun)
+      break
 
   for ndk in [NDK_LINUX, NDK_MAC]:
     if ndk in archives:
