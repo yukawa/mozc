@@ -4,9 +4,7 @@
 Copyright 2010-2025 Google LLC
 
 Mozc is a Japanese Input Method Editor (IME) designed for multi-platform such as
-Android OS, Apple macOS, Chromium OS, GNU/Linux and Microsoft Windows.  This
-OpenSource project originates from
-[Google Japanese Input](http://www.google.com/intl/ja/ime/).
+Android, macOS, Chromium OS, Linux and Windows.
 
 Mozc is not an officially supported Google product.
 
@@ -16,7 +14,6 @@ Build Status
 | Linux | Windows | macOS | Android lib |
 |:-----:|:-------:|:-----:|:-----------:|
 | [![Linux](https://github.com/google/mozc/actions/workflows/linux.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/linux.yaml) | [![Windows](https://github.com/google/mozc/actions/workflows/windows.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/windows.yaml) | [![macOS](https://github.com/google/mozc/actions/workflows/macos.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/macos.yaml) | [![Android lib](https://github.com/google/mozc/actions/workflows/android.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/android.yaml) |
-
 
 What's Mozc?
 ------------
@@ -29,8 +26,6 @@ For historical reasons, the project name *Mozc* has two different meanings:
 
 In this repository, *Mozc* means the second definition unless otherwise noted.
 
-Detailed differences between Google Japanese Input and Mozc are described in [About Branding](docs/about_branding.md).
-
 Build Instructions
 ------------------
 
@@ -39,21 +34,34 @@ Build Instructions
 * [How to build Mozc for macOS](docs/build_mozc_in_osx.md): for macOS build
 * [How to build Mozc for Windows](docs/build_mozc_in_windows.md): for Windows
 
+How is Mozc developed?
+---------------------
+
+You may find how Mozc is developed is a bit obscure and different from other
+open source projects that use GitHub as the true upstream. It is most likely
+bacause the code here is an open source counterpart of a subset of the Google
+internal monorepo.
+
+There are two types of code change flows around this repository:
+
+ 1. New commits in the Google internal monorepo will be published into this
+    reporitory with necessary code transformations.
+ 2. New commits in this open source repository through pull-request will be
+    imported into the Google internal monorepo with necessary code
+    transformations.
+
+For this to happen, the Mozc team internally uses a tool called
+[Copybara](https://github.com/google/copybara) like other Google-developed open
+source projects such as:
+
+ * [Abseil](https://github.com/abseil/abseil-cpp)
+ * [Bazel](https://github.com/bazelbuild/bazel)
+ * [Protocol Buffers](https://github.com/protocolbuffers/protobuf/)
+
 Release Plan
 ------------
 
-tl;dr. **There is no stable version.**
-
-As described in [About Branding](docs/about_branding.md) page, Google does
-not promise any official QA for OSS Mozc project.  Because of this,
-Mozc does not have a concept of *Stable Release*.  Instead we change version
-number every time when we introduce non-trivial change.  If you are
-interested in packaging Mozc source code, or developing your own products
-based on Mozc, feel free to pick up any version.  They should be equally
-stable (or equally unstable) in terms of no official QA process.
-
-[Release History](docs/release_history.md) page may have additional
-information and useful links about recent changes.
+This project only offers a single development branch.
 
 License
 -------
