@@ -79,16 +79,86 @@ enum COLUMN_TYPE {
 constexpr char kMinimumCandidateAndDescriptionWidthAsString[] =
     "そのほかの文字種";
 
+bool IsDarkModeEnabled()
+{
+    DWORD data = 1; // Default to light mode
+    DWORD dataSize = sizeof(data);
+    
+    // Open the key
+    HKEY hKey;
+    LONG result = RegOpenKeyExW(
+        HKEY_CURRENT_USER,
+        L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        0,
+        KEY_READ,
+        &hKey
+    );
+
+    if (result == ERROR_SUCCESS)
+    {
+        // Read the value
+        result = RegQueryValueExW(
+            hKey,
+            L"AppsUseLightTheme",
+            NULL,
+            NULL,
+            (LPBYTE)&data,
+            &dataSize
+        );
+        
+        RegCloseKey(hKey);
+    }
+
+    // 0 means dark mode is enabled
+    return (data == 0);
+}
+
 // Color scheme
-const COLORREF kFrameColor = RGB(0x96, 0x96, 0x96);
-const COLORREF kShortcutBackgroundColor = RGB(0xf3, 0xf4, 0xff);
-const COLORREF kSelectedRowBackgroundColor = RGB(0xd1, 0xea, 0xff);
-const COLORREF kDefaultBackgroundColor = RGB(0xff, 0xff, 0xff);
-const COLORREF kSelectedRowFrameColor = RGB(0x7f, 0xac, 0xdd);
-const COLORREF kIndicatorBackgroundColor = RGB(0xe0, 0xe0, 0xe0);
-const COLORREF kIndicatorColor = RGB(0x75, 0x90, 0xb8);
-const COLORREF kFooterTopColor = RGB(0xff, 0xff, 0xff);
-const COLORREF kFooterBottomColor = RGB(0xee, 0xee, 0xee);
+enum class UiElement {
+  kFrameColor,
+  kShortcutBackgroundColor,
+  kSelectedRowBackgroundColor,
+  kDefaultBackgroundColor,
+  kSelectedRowFrameColor,
+  kIndicatorBackgroundColor,
+  kIndicatorColor,
+  kFooterTopColor,
+  kFooterBottomColor,
+};
+
+const COLORREF GetColor(UiElement element, bool dark_mode_enabled) {
+  switch (element) {
+    case UiElement::kFrameColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0x96, 0xff - 0x96, 0xff - 0x96) : RGB(0x96, 0x96, 0x96);
+    case UiElement::kShortcutBackgroundColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0xf3, 0xff - 0xf4, 0xff - 0xff) : RGB(0xf3, 0xf4, 0xff);
+    case UiElement::kSelectedRowBackgroundColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0xd1, 0xff - 0xea, 0xff - 0xff) : RGB(0xd1, 0xea, 0xff);
+    case UiElement::kDefaultBackgroundColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0xff, 0xff - 0xff, 0xff - 0xff) : RGB(0xff, 0xff, 0xff);
+    case UiElement::kSelectedRowFrameColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0x7f, 0xff - 0xac, 0xff - 0xdd) : RGB(0x7f, 0xac, 0xdd);
+    case UiElement::kIndicatorBackgroundColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0xe0, 0xff - 0xe0, 0xff - 0xe0) : RGB(0xe0, 0xe0, 0xe0);
+    case UiElement::kIndicatorColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0x75, 0xff - 0x90, 0xff - 0xb8) : RGB(0x75, 0x90, 0xb8);
+    case UiElement::kFooterTopColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0xee, 0xff - 0xee, 0xff - 0xee) : RGB(0xff, 0xff, 0xff);
+    case UiElement::kFooterBottomColor:
+      return dark_mode_enabled
+          ? RGB(0xff - 0xee, 0xff - 0xee, 0xff - 0xee) : RGB(0xee, 0xee, 0xee);
+    default:
+      return RGB(0xff, 0x00, 0xff);  // magenta for debug
+  }
+}
 
 // ------------------------------------------------------------------------
 // Utility functions
@@ -240,7 +310,8 @@ CandidateWindow::CandidateWindow()
       text_renderer_(TextRenderer::Create()),
       indicator_width_(0),
       metrics_changed_(false),
-      mouse_moving_(true) {
+      mouse_moving_(true),
+      dark_mode_enabled_(IsDarkModeEnabled()) {
   double scale_factor_x = 1.0;
   double scale_factor_y = 1.0;
   RendererStyleHandler::GetDPIScalingFactor(&scale_factor_x, &scale_factor_y);
@@ -692,13 +763,15 @@ void CandidateWindow::DrawVScrollBar(HDC dc) {
         candidate_window_->candidate(candidates_in_page - 1).index();
 
     const CRect background_crect = ToCRect(vscroll_rect);
-    FillSolidRect(dc, &background_crect, kIndicatorBackgroundColor);
+    FillSolidRect(dc, &background_crect, GetColor(
+        UiElement::kIndicatorBackgroundColor, dark_mode_enabled_));
 
     const mozc::Rect& indicator_rect = table_layout_->GetVScrollIndicatorRect(
         begin_index, end_index, candidates_total);
 
     const CRect indicator_crect = ToCRect(indicator_rect);
-    FillSolidRect(dc, &indicator_crect, kIndicatorColor);
+    FillSolidRect(dc, &indicator_crect, GetColor(
+        UiElement::kIndicatorColor, dark_mode_enabled_));
   }
 }
 
@@ -716,7 +789,8 @@ void CandidateWindow::DrawShortcutBackground(HDC dc) {
       shortcut_colmun_rect.origin.x = row_rect.Left();
       shortcut_colmun_rect.size.width = width;
       const CRect shortcut_colmun_crect = ToCRect(shortcut_colmun_rect);
-      FillSolidRect(dc, &shortcut_colmun_crect, kShortcutBackgroundColor);
+      FillSolidRect(dc, &shortcut_colmun_crect, GetColor(
+          UiElement::kShortcutBackgroundColor, dark_mode_enabled_));
     }
   }
 }
@@ -727,7 +801,8 @@ void CandidateWindow::DrawFooter(HDC dc) {
     return;
   }
 
-  const COLORREF kFooterSeparatorColors[kFooterSeparatorHeight] = {kFrameColor};
+  const COLORREF kFooterSeparatorColors[kFooterSeparatorHeight] =
+      {GetColor(UiElement::kFrameColor, dark_mode_enabled_)};
 
   // DC pen is available in Windows 2000 and later.
   {
@@ -749,13 +824,21 @@ void CandidateWindow::DrawFooter(HDC dc) {
 
   // Draw gradient rect in the footer area
   {
+    const COLORREF footer_top_color =
+        GetColor(UiElement::kFooterTopColor, dark_mode_enabled_);
+    const COLORREF footer_bottom_color =
+        GetColor(UiElement::kFooterBottomColor, dark_mode_enabled_);
     TRIVERTEX vertices[] = {
         {footer_content_rect.Left(), footer_content_rect.Top(),
-         GetRValue(kFooterTopColor) << 8, GetGValue(kFooterTopColor) << 8,
-         GetBValue(kFooterTopColor) << 8, 0xff00},
+         static_cast<COLOR16>(GetRValue(footer_top_color) << 8),
+         static_cast<COLOR16>(GetGValue(footer_top_color) << 8),
+         static_cast<COLOR16>(GetBValue(footer_top_color) << 8),
+         0xff00},
         {footer_content_rect.Right(), footer_content_rect.Bottom(),
-         GetRValue(kFooterBottomColor) << 8, GetGValue(kFooterBottomColor) << 8,
-         GetBValue(kFooterBottomColor) << 8, 0xff00}};
+         static_cast<COLOR16>(GetRValue(footer_bottom_color) << 8),
+         static_cast<COLOR16>(GetGValue(footer_bottom_color) << 8),
+         static_cast<COLOR16>(GetBValue(footer_bottom_color) << 8),
+         0xff00}};
     GRADIENT_RECT indices[] = {{0, 1}};
     ::GradientFill(dc, &vertices[0], std::size(vertices), &indices[0],
                    std::size(indices), GRADIENT_FILL_RECT_V);
@@ -829,9 +912,11 @@ void CandidateWindow::DrawSelectedRect(HDC dc) {
 
     const CRect selected_rect =
         ToCRect(table_layout_->GetRowRect(focused_array_index));
-    FillSolidRect(dc, &selected_rect, kSelectedRowBackgroundColor);
+    FillSolidRect(dc, &selected_rect, GetColor(
+        UiElement::kSelectedRowBackgroundColor, dark_mode_enabled_));
 
-    ::SetDCBrushColor(dc, kSelectedRowFrameColor);
+    ::SetDCBrushColor(dc, GetColor(
+        UiElement::kSelectedRowFrameColor, dark_mode_enabled_));
     ::FrameRect(dc, &selected_rect,
                 static_cast<HBRUSH>(::GetStockObject(DC_BRUSH)));
   }
@@ -849,8 +934,10 @@ void CandidateWindow::DrawInformationIcon(HDC dc) {
       rect.right = rect.right - (2.0 * scale_factor_x);
       rect.top += (2.0 * scale_factor_y);
       rect.bottom -= (2.0 * scale_factor_y);
-      FillSolidRect(dc, &rect, kIndicatorColor);
-      ::SetDCBrushColor(dc, kIndicatorColor);
+      const COLORREF indicator_color =
+          GetColor(UiElement::kIndicatorColor, dark_mode_enabled_);
+      FillSolidRect(dc, &rect, indicator_color);
+      ::SetDCBrushColor(dc, indicator_color);
       ::FrameRect(dc, &rect, static_cast<HBRUSH>(::GetStockObject(DC_BRUSH)));
     }
   }
@@ -859,7 +946,8 @@ void CandidateWindow::DrawInformationIcon(HDC dc) {
 void CandidateWindow::DrawBackground(HDC dc) {
   const Rect client_rect(Point(0, 0), table_layout_->GetTotalSize());
   const CRect client_crect = ToCRect(client_rect);
-  FillSolidRect(dc, &client_crect, kDefaultBackgroundColor);
+  FillSolidRect(dc, &client_crect, GetColor(
+      UiElement::kDefaultBackgroundColor, dark_mode_enabled_));
 }
 
 void CandidateWindow::DrawFrame(HDC dc) {
@@ -867,7 +955,7 @@ void CandidateWindow::DrawFrame(HDC dc) {
   const CRect client_crect = ToCRect(client_rect);
 
   // DC brush is available in Windows 2000 and later.
-  ::SetDCBrushColor(dc, kFrameColor);
+  ::SetDCBrushColor(dc, GetColor(UiElement::kFrameColor, dark_mode_enabled_));
   ::FrameRect(dc, &client_crect,
               static_cast<HBRUSH>(::GetStockObject(DC_BRUSH)));
 }

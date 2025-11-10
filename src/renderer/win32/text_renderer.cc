@@ -63,24 +63,64 @@ using ::mozc::renderer::RendererStyleHandler;
 
 namespace {
 
+bool IsDarkModeEnabled()
+{
+    DWORD data = 1; // Default to light mode
+    DWORD dataSize = sizeof(data);
+    
+    // Open the key
+    HKEY hKey;
+    LONG result = RegOpenKeyExW(
+        HKEY_CURRENT_USER,
+        L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        0,
+        KEY_READ,
+        &hKey
+    );
+
+    if (result == ERROR_SUCCESS)
+    {
+        // Read the value
+        result = RegQueryValueExW(
+            hKey,
+            L"AppsUseLightTheme",
+            NULL,
+            NULL,
+            (LPBYTE)&data,
+            &dataSize
+        );
+        
+        RegCloseKey(hKey);
+    }
+
+    // 0 means dark mode is enabled
+    return (data == 0);
+}
+
 CRect ToCRect(const Rect& rect) {
   return CRect(rect.Left(), rect.Top(), rect.Right(), rect.Bottom());
 }
 
-COLORREF GetTextColor(TextRenderer::FONT_TYPE type) {
+COLORREF GetTextColor(TextRenderer::FONT_TYPE type, bool dark_mode_enabled) {
   switch (type) {
     case TextRenderer::FONTSET_SHORTCUT:
-      return RGB(0x61, 0x61, 0x61);
+      return dark_mode_enabled ?
+          RGB(0xff - 0x61, 0xff - 0x61, 0xff - 0x61) : RGB(0x61, 0x61, 0x61);
     case TextRenderer::FONTSET_CANDIDATE:
-      return RGB(0x00, 0x00, 0x00);
+      return dark_mode_enabled ?
+          RGB(0xff, 0xff, 0xff) : RGB(0x00, 0x00, 0x00);
     case TextRenderer::FONTSET_DESCRIPTION:
-      return RGB(0x88, 0x88, 0x88);
+      return dark_mode_enabled ?
+          RGB(0xff - 0x88, 0xff - 0x88, 0xff - 0x88) : RGB(0x88, 0x88, 0x88);
     case TextRenderer::FONTSET_FOOTER_INDEX:
-      return RGB(0x4c, 0x4c, 0x4c);
+      return dark_mode_enabled ?
+          RGB(0xff - 0x4c, 0xff - 0x4c, 0xff - 0x4c) : RGB(0x4c, 0x4c, 0x4c);
     case TextRenderer::FONTSET_FOOTER_LABEL:
-      return RGB(0x4c, 0x4c, 0x4c);
+      return dark_mode_enabled ?
+          RGB(0xff - 0x4c, 0xff - 0x4c, 0xff - 0x4c) : RGB(0x4c, 0x4c, 0x4c);
     case TextRenderer::FONTSET_FOOTER_SUBLABEL:
-      return RGB(0xA7, 0xA7, 0xA7);
+      return dark_mode_enabled ?
+          RGB(0xff - 0xA7, 0xff - 0xA7, 0xff - 0xA7) : RGB(0xA7, 0xA7, 0xA7);
     default:
       break;
   }
@@ -90,25 +130,35 @@ COLORREF GetTextColor(TextRenderer::FONT_TYPE type) {
   RendererStyle style;
   RendererStyleHandler::GetRendererStyle(&style);
   const auto& infostyle = style.infolist_style();
+  double r = 0.0;
+  double g = 0.0;
+  double b = 0.0;
   switch (type) {
     case TextRenderer::FONTSET_INFOLIST_CAPTION:
-      return RGB(infostyle.caption_style().foreground_color().r(),
-                 infostyle.caption_style().foreground_color().g(),
-                 infostyle.caption_style().foreground_color().b());
+      r = infostyle.caption_style().foreground_color().r();
+      g = infostyle.caption_style().foreground_color().g();
+      b = infostyle.caption_style().foreground_color().b();
+      break;
     case TextRenderer::FONTSET_INFOLIST_TITLE:
-      return RGB(infostyle.title_style().foreground_color().r(),
-                 infostyle.title_style().foreground_color().g(),
-                 infostyle.title_style().foreground_color().b());
+      r = infostyle.title_style().foreground_color().r();
+      g = infostyle.title_style().foreground_color().g();
+      b = infostyle.title_style().foreground_color().b();
+      break;
     case TextRenderer::FONTSET_INFOLIST_DESCRIPTION:
-      return RGB(infostyle.description_style().foreground_color().r(),
-                 infostyle.description_style().foreground_color().g(),
-                 infostyle.description_style().foreground_color().b());
+      r = infostyle.description_style().foreground_color().r();
+      g = infostyle.description_style().foreground_color().g();
+      b = infostyle.description_style().foreground_color().b();
+      break;
     default:
+      LOG(DFATAL) << "Unknown type: " << type;
       break;
   }
-
-  LOG(DFATAL) << "Unknown type: " << type;
-  return RGB(0, 0, 0);
+  if (dark_mode_enabled) {
+    r = 255.0 - r;
+    g = 255.0 - g;
+    b = 255.0 - b;
+  }
+  return RGB(static_cast<BYTE>(r), static_cast<BYTE>(g), static_cast<BYTE>(b));
 }
 
 LOGFONT GetLogFont(TextRenderer::FONT_TYPE type) {
@@ -214,12 +264,14 @@ class GdiTextRenderer : public TextRenderer {
       }
     }
 
+    const bool dark_mode_enabled = IsDarkModeEnabled();
+
     for (size_t i = 0; i < SIZE_OF_FONT_TYPE; ++i) {
       const auto font_type = static_cast<FONT_TYPE>(i);
       const auto& log_font = GetLogFont(font_type);
       render_info_[i].style = GetGdiDrawTextStyle(font_type);
       render_info_[i].font.reset(::CreateFontIndirectW(&log_font));
-      render_info_[i].color = GetTextColor(font_type);
+      render_info_[i].color = GetTextColor(font_type, dark_mode_enabled);
     }
   }
 
@@ -323,10 +375,12 @@ class DirectWriteTextRenderer : public TextRenderer {
     render_info_.clear();
     render_info_.resize(SIZE_OF_FONT_TYPE);
 
+    const bool dark_mode_enabled = IsDarkModeEnabled();
+
     for (size_t i = 0; i < SIZE_OF_FONT_TYPE; ++i) {
       const auto font_type = static_cast<FONT_TYPE>(i);
       const auto& log_font = GetLogFont(font_type);
-      render_info_[i].color = GetTextColor(font_type);
+      render_info_[i].color = GetTextColor(font_type, dark_mode_enabled);
       render_info_[i].format = CreateFormat(log_font);
       render_info_[i].format_to_render = CreateFormat(log_font);
       const auto style = GetGdiDrawTextStyle(font_type);
