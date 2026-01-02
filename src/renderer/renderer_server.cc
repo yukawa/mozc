@@ -56,6 +56,8 @@
 
 #include "base/const.h"
 #include "base/win32/win_util.h"
+#else   // _WIN32
+#include <unistd.h>
 #endif  // _WIN32
 
 // By default, mozc_renderer quits when user-input continues to be
@@ -76,14 +78,22 @@ constexpr int kNumConnections = 10;
 constexpr absl::Duration kIPCServerTimeOut = absl::Milliseconds(1000);
 constexpr char kServiceName[] = "renderer";
 
-std::string GetServiceName() {
+std::string ConstructServiceName(bool for_testing) {
   std::string name = kServiceName;
+  if (for_testing) {
+#ifdef _WIN32
+    absl::StrAppend(&name, ".test.", ::GetCurrentProcessId());
+#else   // _WIN32
+    absl::StrAppend(&name, ".test.", getpid());
+#endif  // _WIN32
+  }
   const std::string desktop_name = SystemUtil::GetDesktopNameAsString();
   if (!desktop_name.empty()) {
     absl::StrAppend(&name, ".", desktop_name);
   }
   return name;
 }
+
 }  // namespace
 
 class RendererServerSendCommand : public client::SendCommandInterface {
@@ -130,8 +140,10 @@ class RendererServerSendCommand : public client::SendCommandInterface {
   uint32_t receiver_handle_;
 };
 
-RendererServer::RendererServer()
-    : IPCServer(GetServiceName(), kNumConnections, kIPCServerTimeOut),
+RendererServer::RendererServer() : RendererServer(false) {}
+
+RendererServer::RendererServer(bool for_testing)
+    : IPCServer(ConstructServiceName(for_testing), kNumConnections, kIPCServerTimeOut),
       renderer_interface_(nullptr),
       timeout_(0),
       send_command_(new RendererServerSendCommand) {

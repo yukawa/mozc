@@ -39,6 +39,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/log/log.h"
+#include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -332,22 +333,15 @@ class RendererLauncher : public RendererLauncherInterface {
   std::optional<BackgroundFuture<void>> launcher_;
 };
 
-RendererClient::RendererClient()
+RendererClient::RendererClient(std::string_view name)
     : is_window_visible_(false),
       disable_renderer_path_check_(false),
       version_mismatch_nums_(0),
+      name_(name),
       ipc_client_factory_interface_(IPCClientFactory::GetIPCClientFactory()),
       renderer_launcher_(new RendererLauncher),
       renderer_launcher_interface_(nullptr) {
   renderer_launcher_interface_ = renderer_launcher_.get();
-
-  name_ = kServiceName;
-  const std::string desktop_name(SystemUtil::GetDesktopNameAsString());
-  if (!desktop_name.empty()) {
-    name_ += ".";
-    name_ += desktop_name;
-  }
-
   renderer_path_ = SystemUtil::GetRendererPath();
 }
 
@@ -527,6 +521,20 @@ std::unique_ptr<IPCClientInterface> RendererClient::CreateIPCClient() const {
     return ipc_client_factory_interface_->NewClient(name_, "");
   }
   return ipc_client_factory_interface_->NewClient(name_, renderer_path_);
+}
+
+std::unique_ptr<RendererClient> RendererClient::Create() {
+  std::string name = kServiceName;
+  const std::string desktop_name = SystemUtil::GetDesktopNameAsString();
+  if (!desktop_name.empty()) {
+    absl::StrAppend(&name, ".", desktop_name);
+  }
+  return std::unique_ptr<RendererClient>(new RendererClient(name));
+}
+
+std::unique_ptr<RendererClient> RendererClient::CreateForTesting(
+    std::string_view name) {
+  return std::unique_ptr<RendererClient>(new RendererClient(name));
 }
 
 }  // namespace renderer

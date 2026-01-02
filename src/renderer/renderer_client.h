@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "client/client_interface.h"
 #include "ipc/ipc.h"
@@ -76,11 +77,18 @@ class RendererLauncherInterface {
 };
 
 // IPC-based client for out-proc renderer.
-class RendererClient : public RendererInterface {
+class RendererClient final : public RendererInterface {
  public:
-  RendererClient();
   RendererClient(RendererClient&&) = default;
   RendererClient& operator=(RendererClient&&) = default;
+
+  // Returns a new RendererClient instance with default service name.
+  static std::unique_ptr<RendererClient> Create();
+
+  // Returns a new RendererClient instance with custom service name for testing.
+  // Use RendererServer::GetServiceName() to get the service name.
+  static std::unique_ptr<RendererClient> CreateForTesting(std::string_view name);
+
   ~RendererClient() override;
 
   // set IPC factory
@@ -120,6 +128,8 @@ class RendererClient : public RendererInterface {
   void set_suppress_error_dialog(bool suppress);
 
  private:
+  explicit RendererClient(std::string_view name);
+
   std::unique_ptr<IPCClientInterface> CreateIPCClient() const;
 
   bool is_window_visible_;
