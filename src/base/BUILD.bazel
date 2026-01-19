@@ -751,6 +751,7 @@ mozc_run_build_tool(
         windows = ["--target_platform=Windows"],
     ) + select({
         "//:dev_channel": ["--channel=dev"],
+        "//:stable_channel": ["--channel=stable"],
         "//conditions:default": ["--channel=stable"],
     }),
     tool = "//build_tools:mozc_version",
