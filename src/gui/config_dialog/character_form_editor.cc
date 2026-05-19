@@ -108,6 +108,7 @@ CharacterFormEditor::CharacterFormEditor(QWidget *parent)
   setAlternatingRowColors(true);
   setSelectionMode(QAbstractItemView::SingleSelection);
   setSelectionBehavior(QAbstractItemView::SelectItems);
+  setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
   verticalHeader()->hide();
 #ifdef __APPLE__
   // grid is basically hidden in mac ui.
