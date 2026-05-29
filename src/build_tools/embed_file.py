@@ -31,6 +31,7 @@
 """Generate a C++ array definition for file embedding."""
 import argparse
 import os
+import sys
 
 
 def _ParseArgs():
@@ -41,7 +42,52 @@ def _ParseArgs():
   parser.add_argument(
       '--output', type=argparse.FileType(mode='w', encoding='utf-8')
   )
+  parser.add_argument('--as_string_view', action='store_true')
   return parser.parse_args()
+
+
+def _EmbedAsStringView(input_path, name, output_file):
+  """Embed file as absl::string_view using Raw String Literal."""
+  # Load input file as binary to validate UTF-8 and Null bytes
+  with open(input_path, 'rb') as infile:
+    data = infile.read()
+
+  # 1. Validate invalid UTF-8 byte sequence
+  try:
+    content = data.decode('utf-8', errors='strict')
+  except UnicodeDecodeError as e:
+    sys.stderr.write(
+        f'Error: {input_path} contains invalid UTF-8 byte sequence: {e}\n'
+    )
+    sys.exit(1)
+
+  # 2. Validate Null byte
+  if '\0' in content:
+    sys.stderr.write(
+        f'Error: {input_path} contains a null byte (\\0), which is not'
+        ' allowed in as_string_view mode.\n'
+    )
+    sys.exit(1)
+
+  # 3. Validate delimiter conflict
+  delimiter_conflict = f'){name}'
+  if delimiter_conflict in content:
+    sys.stderr.write(
+        f'Error: {input_path} contains the delimiter string'
+        f" '{delimiter_conflict}', which conflicts with the C++ Raw String"
+        ' delimiter.\n'
+    )
+    sys.exit(1)
+
+  output_file.write("""\
+#ifdef MOZC_EMBEDDED_FILE_%(name)s
+#error "%(name)s was already included or defined elsewhere"
+#else
+#define MOZC_EMBEDDED_FILE_%(name)s
+constexpr absl::string_view %(name)s = R"%(name)s(
+%(content)s)%(name)s";
+#endif  // MOZC_EMBEDDED_FILE_%(name)s
+""" % {'name': name, 'content': content})
 
 
 def _EmbedAsUint64Array(input_path, name, output_file):
@@ -81,7 +127,10 @@ constexpr EmbeddedFile %(name)s = {
 
 def main():
   args = _ParseArgs()
-  _EmbedAsUint64Array(args.input, args.name, args.output)
+  if args.as_string_view:
+    _EmbedAsStringView(args.input, args.name, args.output)
+  else:
+    _EmbedAsUint64Array(args.input, args.name, args.output)
 
 
 if __name__ == '__main__':
