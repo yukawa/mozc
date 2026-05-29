@@ -44,48 +44,44 @@ def _ParseArgs():
   return parser.parse_args()
 
 
-def _FormatAsUint64LittleEndian(s):
-  """Formats a string as uint64_t value in little endian order."""
-  for _ in range(len(s), 8):
-    s += b'\0'
-  s = s[::-1]  # Reverse the string
-  return '0x' + s.hex()
+def _EmbedAsUint64Array(input_path, name, output_file):
+  """Embed file as uint64_t array using EmbeddedFile struct."""
+
+  output_file.write("""\
+#ifdef MOZC_EMBEDDED_FILE_%(name)s
+#error "%(name)s was already included or defined elsewhere"
+#else
+#define MOZC_EMBEDDED_FILE_%(name)s
+constexpr uint64_t %(name)s_data[] = {
+""" % {'name': name})
+
+  with open(input_path, 'rb') as infile:
+    # Read in chunks of 32 bytes (representing one printed line of 4 uint64_t
+    # values)
+    while line_chunk := infile.read(32):
+      # Split the 32-byte row into 8-byte chunks
+      hex_strings = []
+      for i in range(0, len(line_chunk), 8):
+        chunk_bytes = line_chunk[i : i + 8]
+        chunk_int = int.from_bytes(chunk_bytes, byteorder='little')
+        # Format C++ hexadecimal string literals for each chunk
+        hex_strings.append(f'0x{chunk_int:016x}')
+      # Write the entire row to the output file (indenting with 2 spaces)
+      output_file.write('  ' + ', '.join(hex_strings) + ',\n')
+
+  output_file.write("""\
+};
+constexpr EmbeddedFile %(name)s = {
+  %(name)s_data,
+  %(size)d,
+};
+#endif  // MOZC_EMBEDDED_FILE_%(name)s
+""" % {'name': name, 'size': os.stat(input_path).st_size})
 
 
 def main():
   args = _ParseArgs()
-  args.output.write(
-      '#ifdef MOZC_EMBEDDED_FILE_%(name)s\n'
-      '#error "%(name)s was already included or defined elsewhere"\n'
-      '#else\n'
-      '#define MOZC_EMBEDDED_FILE_%(name)s\n'
-      'constexpr uint64_t %(name)s_data[] = {'
-      % {'name': args.name}
-  )
-
-  with open(args.input, 'rb') as infile:
-    i = 0
-    while True:
-      chunk = infile.read(8)
-      if not chunk:
-        break
-      if i % 4 == 0:
-        args.output.write('\n  ')
-      else:
-        args.output.write(' ')
-      args.output.write(_FormatAsUint64LittleEndian(chunk))
-      args.output.write(',')
-      i = i + 1
-
-  args.output.write(
-      '\n};\n'
-      'constexpr EmbeddedFile %(name)s = {\n'
-      '  %(name)s_data,\n'
-      '  %(size)d,\n'
-      '};\n'
-      '#endif  // MOZC_EMBEDDED_FILE_%(name)s\n'
-      % {'name': args.name, 'size': os.stat(args.input).st_size}
-  )
+  _EmbedAsUint64Array(args.input, args.name, args.output)
 
 
 if __name__ == '__main__':
