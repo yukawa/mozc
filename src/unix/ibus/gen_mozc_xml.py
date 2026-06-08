@@ -73,30 +73,6 @@ def GetTextProtoElement(key, value):
   return '  %s : "%s"' % (key, value)
 
 
-def GetEnginesXml(engine_common, engines):
-  """Outputs a XML data for ibus-daemon.
-
-  Args:
-    engine_common: A dictionary from a property name to a property value that
-      are commonly used in all engines. For example, {'language': 'ja'}.
-    engines: A dictionary from a property name to a list of property values of
-      engines. For example, {'name': ['mozc-jp', 'mozc', 'mozc-dv']}.
-
-  Returns:
-    output string in XML.
-  """
-  output = ['<engines>']
-  for engine in engines:
-    output.append('<engine>')
-    for key, value in engine_common.items():
-      output.append(GetXmlElement(key, value))
-    for key, value in engine.items():
-      output.append(GetXmlElement(key, value))
-    output.append('</engine>')
-  output.append('</engines>')
-  return '\n'.join(output)
-
-
 def GetIbusConfigTextProto(engines):
   """Outputs a TextProto data for iBus config.
 
@@ -178,10 +154,6 @@ def OutputCpp(component, engine_common, engines):
     OutputCppVariable('Component', key, value)
   for key, value in engine_common.items():
     OutputCppVariable('Engine', key, value)
-  print('const size_t kEngineArrayLen = %s;' % len(engines))
-  print('const char kEnginesXml[] = R"#(', end='')
-  print(GetEnginesXml(engine_common, engines))
-  print(')#";')
   print('const char kIbusConfigTextProto[] = R"#(', end='')
   print(GetIbusConfigTextProto(engines))
   print(')#";')
