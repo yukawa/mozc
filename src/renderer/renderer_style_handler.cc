@@ -32,6 +32,8 @@
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "base/protobuf/text_format.h"
+#include "base/protobuf_util.h"
+#include "base/text_normalizer.h"
 #include "protocol/renderer_style.pb.h"
 
 namespace mozc {
@@ -57,6 +59,12 @@ void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
     SetRgbaColor(style->mutable_candidate_style()->mutable_background_color(),
                  255, 255, 255);
   }
+
+  protobuf_util::SanitizeMessageStrings(*style, [](absl::string_view src) {
+    // Limit the length of the string to 100 bytes and remove ill-formed
+    // UTF-8 sequences and ASCII control characters.
+    return TextNormalizer::SanitizeText(src, 100);
+  });
 }
 
 }  // namespace renderer
